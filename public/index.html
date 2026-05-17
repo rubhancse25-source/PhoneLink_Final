@@ -7,7 +7,8 @@
 <meta name="description" content="PhoneLink laptop dashboard – control your PC from your phone">
 <link rel="stylesheet" href="common.css">
 <style>
-  .dash-layout{display:grid;grid-template-columns:300px 1fr;min-height:100vh;gap:0}
+  .dash-layout{display:grid;grid-template-columns:300px 1fr;min-height:100vh;gap:0;transition:grid-template-columns var(--transition-med)}
+  .dash-layout.sidebar-collapsed{grid-template-columns:1fr}
   #landingView{min-height:100vh}
   .landing{padding:clamp(2rem,5vw,5rem);position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;text-align:center}
   .landing::before{content:'';position:absolute;inset:0 20%;border-radius:50%;background:linear-gradient(135deg,var(--accent-glow),var(--accent2-glow));filter:blur(80px);opacity:.6;animation:float 7s ease-in-out infinite;pointer-events:none}
@@ -31,7 +32,10 @@
   .compare-table td:nth-child(2){color:var(--text-primary);font-weight:700;background:rgba(124,58,237,.05)}
   .compare-table tr:last-child td{border-bottom:0}
   .sidebar{background:var(--bg-secondary);border-right:1px solid var(--border-glass);display:flex;flex-direction:column;padding:1.5rem;gap:1.5rem;overflow-y:auto}
+  .dash-layout.sidebar-collapsed .sidebar{display:none}
   .main-content{padding:2rem;overflow-y:auto;display:flex;flex-direction:column;gap:1.5rem}
+  .sidebar-open-btn{position:fixed;top:1rem;left:1rem;z-index:80;box-shadow:var(--shadow-md)}
+  .sidebar-close-btn{width:100%;margin-top:.5rem}
   .qr-img{width:180px;height:180px;border-radius:12px;border:2px solid var(--border-glass);padding:6px;background:rgba(0,0,0,.4);image-rendering:pixelated}
   .mode-btn{width:100%;text-align:left;padding:.8rem 1rem;border-radius:var(--radius-sm);background:var(--bg-glass);border:1px solid var(--border-glass);color:var(--text-secondary);font-weight:600;font-size:.85rem;display:flex;align-items:center;gap:.6rem;transition:all .2s}
   .mode-btn:hover{background:var(--accent-glow);color:var(--text-primary);border-color:var(--accent)}
@@ -58,6 +62,12 @@
   .whiteboard-toolbar .btn.active{background:var(--accent);color:#071016;border-color:var(--accent)}
   .whiteboard-stage{width:100%;height:min(70vh,640px);min-height:480px;border-radius:var(--radius);overflow:hidden;background:#fff;border:1px solid var(--border-glass);box-shadow:var(--shadow-lg);position:relative}
   .whiteboard-stage canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+  #laptopWhiteboardRoot:fullscreen{width:100vw;height:100vh;padding:1rem;background:var(--bg-secondary);display:flex;flex-direction:column}
+  #laptopWhiteboardRoot:fullscreen .whiteboard-stage{flex:1;height:auto;min-height:0}
+  #laptopWhiteboardRoot:fullscreen .whiteboard-toolbar{flex-shrink:0}
+  #laptopWhiteboardRoot:-webkit-full-screen{width:100vw;height:100vh;padding:1rem;background:var(--bg-secondary);display:flex;flex-direction:column}
+  #laptopWhiteboardRoot:-webkit-full-screen .whiteboard-stage{flex:1;height:auto;min-height:0}
+  #laptopWhiteboardRoot:-webkit-full-screen .whiteboard-toolbar{flex-shrink:0}
   @media(max-width:700px){.whiteboard-stage{min-height:360px}}
   .themes-row{display:flex;gap:.4rem}
   .slide-laser-stage{width:100%;aspect-ratio:16/9;border-radius:var(--radius);background:linear-gradient(135deg,rgba(255,255,255,.04),rgba(255,255,255,.02));border:1px solid var(--border-glass);position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:.85rem}
@@ -67,6 +77,9 @@
   .screen-laser-dot{position:fixed;width:30px;height:30px;border-radius:50%;background:#ff1028;box-shadow:0 0 16px 6px #ff1028,0 0 58px 18px rgba(255,16,40,.45);transform:translate(-50%,-50%);opacity:0;pointer-events:none;z-index:5000;transition:opacity .1s}
   .screen-laser-dot.active{opacity:1}
   .dash-settings-btn{width:100%;margin-top:.8rem}
+  .sidebar-brand-home{display:inline-block;border:0;background:transparent;cursor:pointer}
+  .sidebar-brand-home .title{font-size:1.4rem;text-shadow:0 0 18px var(--accent),0 0 34px var(--accent-glow);animation:textGlowPulse 3s ease-in-out infinite}
+  .sidebar-brand-home:hover .title{transform:translateY(-1px)}
   @media(max-width:900px){.compare-table{display:block;overflow-x:auto}.dash-layout{grid-template-columns:1fr}.sidebar{border-right:none;border-bottom:1px solid var(--border-glass)}}
 </style>
 </head>
@@ -109,12 +122,16 @@
 </div>
 
 <div class="dash-layout hidden" id="dashboard">
+  <button class="btn btn-sm sidebar-open-btn hidden" id="sidebarOpenBtn" type="button" onclick="setSidebarCollapsed(false)">Open Sidebar</button>
   <!-- Sidebar -->
   <aside class="sidebar animate-fade">
     <div class="text-center">
-      <div class="title" style="font-size:1.4rem">PhoneLink</div>
+      <button class="sidebar-brand-home" type="button" onclick="returnToLanding()" aria-label="Go to PhoneLink landing page">
+        <span class="title">PhoneLink</span>
+      </button>
       <p class="subtitle" style="font-size:.78rem;margin-top:.3rem">Remote Control Suite</p>
       <button class="btn btn-sm dash-settings-btn" onclick="openDashboardSettings()">Settings</button>
+      <button class="btn btn-sm sidebar-close-btn" onclick="setSidebarCollapsed(true)">Hide Sidebar</button>
     </div>
 
     <!-- QR Code -->
@@ -280,6 +297,17 @@ function openDashboard() {
   document.getElementById('landingView')?.classList.add('hidden');
   document.getElementById('dashboard')?.classList.remove('hidden');
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function returnToLanding() {
+  document.getElementById('dashboard')?.classList.add('hidden');
+  document.getElementById('landingView')?.classList.remove('hidden');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  requestAnimationFrame(updateFeatureSwirl);
+}
+function setSidebarCollapsed(collapsed) {
+  document.getElementById('dashboard')?.classList.toggle('sidebar-collapsed', collapsed);
+  document.getElementById('sidebarOpenBtn')?.classList.toggle('hidden', !collapsed);
+  setTimeout(() => laptopWhiteboard?.resize(), 260);
 }
 
 function updateFeatureSwirl() {

@@ -26,18 +26,33 @@ html,body{
   background:#f8f9fc;
   position:relative;overflow:hidden;
 }
+.wb-floating-actions{
+  position:absolute;top:calc(env(safe-area-inset-top) + 8px);left:calc(env(safe-area-inset-left) + 8px);right:calc(env(safe-area-inset-right) + 8px);
+  z-index:160;display:flex;align-items:center;justify-content:space-between;pointer-events:none;
+}
+.wb-action-btn{
+  pointer-events:auto;min-width:58px;height:38px;padding:0 12px;border-radius:999px;
+  background:rgba(17,24,39,.84);color:#fff;border:1px solid rgba(255,255,255,.18);
+  box-shadow:0 12px 32px rgba(0,0,0,.24);backdrop-filter:blur(14px);
+  font-size:12px;font-weight:800;
+}
 
 /* ── Top toolbar ─────────────────────────────────────────── */
 .wb-topbar{
+  position:absolute;top:calc(env(safe-area-inset-top) + 54px);left:calc(env(safe-area-inset-left) + 8px);right:calc(env(safe-area-inset-right) + 8px);
   display:flex;align-items:center;gap:4px;
   padding:6px 8px;
-  background:#fff;
-  border-bottom:1px solid rgba(0,0,0,.08);
-  box-shadow:0 1px 6px rgba(0,0,0,.06);
-  z-index:100;flex-shrink:0;
+  background:rgba(255,255,255,.92);
+  border:1px solid rgba(0,0,0,.08);
+  border-radius:14px;
+  box-shadow:0 16px 44px rgba(0,0,0,.18);
+  backdrop-filter:blur(16px);
+  z-index:150;flex-shrink:0;
   overflow-x:auto;
   scrollbar-width:none;
+  transition:opacity .2s ease,transform .2s ease,visibility .2s;
 }
+.wb-topbar.is-hidden{opacity:0;transform:translateY(-8px);visibility:hidden;pointer-events:none}
 .wb-topbar::-webkit-scrollbar{display:none}
 
 /* ── Tool button ─────────────────────────────────────────── */
@@ -91,7 +106,7 @@ html,body{
   touch-action:none;
   overscroll-behavior:none;
   -webkit-user-select:none;user-select:none;
-  border:1px solid #111;
+  border:2px solid #111;
   box-shadow:inset 0 0 0 1px #111;
 }
 .wb-canvas-wrap canvas{
@@ -105,11 +120,14 @@ html,body{
 
 /* ── Bottom toolbar ──────────────────────────────────────── */
 .wb-bottombar{
+  position:absolute;right:calc(env(safe-area-inset-right) + 10px);bottom:calc(env(safe-area-inset-bottom) + 10px);
   display:flex;align-items:center;justify-content:space-between;
   padding:6px 10px;
-  background:#fff;
-  border-top:1px solid rgba(0,0,0,.08);
-  box-shadow:0 -1px 6px rgba(0,0,0,.05);
+  background:rgba(255,255,255,.88);
+  border:1px solid rgba(0,0,0,.08);
+  border-radius:999px;
+  box-shadow:0 12px 32px rgba(0,0,0,.14);
+  backdrop-filter:blur(14px);
   z-index:100;flex-shrink:0;
   gap:4px;
 }
@@ -186,9 +204,13 @@ html,body{
 </head>
 <body>
 <div class="wb-layout" id="wbRoot">
+  <div class="wb-floating-actions">
+    <button class="wb-action-btn" type="button" id="wbMenuBtn">Menu</button>
+    <button class="wb-action-btn" type="button" onclick="exitWhiteboard()">Exit</button>
+  </div>
 
   <!-- Top toolbar -->
-  <div class="wb-topbar" id="wbTopbar">
+  <div class="wb-topbar is-hidden" id="wbTopbar">
     <!-- Drawing tools -->
     <button class="tb active" data-wb-tool="pen"      title="Pen (P)">P</button>
     <button class="tb"        data-wb-tool="eraser"   title="Eraser (E)">E</button>
@@ -217,6 +239,7 @@ html,body{
     <button class="tb" data-wb-redo  title="Redo">↪</button>
     <button class="tb" data-wb-clear title="Clear all" style="color:#ef4444">×</button>
     <button class="tb" data-wb-export title="Export PNG" style="color:#22c55e">⬇</button>
+    <button class="tb" type="button" onclick="requestAppFullscreen(document.getElementById('wbRoot'))" title="Fullscreen">⛶</button>
     <button class="tb" data-wb-reset title="Reset view">⊕</button>
   </div>
 
@@ -275,6 +298,10 @@ if (sessionId) {
 }
 
 buildPhoneNav('whiteboard');
+
+function exitWhiteboard() {
+  window.location.href = `controller.html?session=${sessionId || ''}`;
+}
 
 /* ── Init whiteboard after DOM ready ── */
 function initWhiteboard() {
@@ -349,6 +376,14 @@ document.querySelectorAll('[data-wb-tool]').forEach(btn => {
     showToolToast(names[btn.dataset.wbTool] || btn.dataset.wbTool);
     updateBrushPreview();
   });
+});
+document.getElementById('wbMenuBtn')?.addEventListener('click', () => {
+  document.getElementById('wbTopbar')?.classList.toggle('is-hidden');
+});
+document.getElementById('wbTopbar')?.addEventListener('click', e => {
+  if (e.target.closest('button')) {
+    setTimeout(() => document.getElementById('wbTopbar')?.classList.add('is-hidden'), 120);
+  }
 });
 
 /* ── Touch cursor removed: overlay divs can steal pointer events on some mobile browsers ── */

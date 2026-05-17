@@ -15,7 +15,7 @@
   .hero h1{font-family:'Space Grotesk',sans-serif;font-size:1.95rem;line-height:1.05;letter-spacing:-.02em;font-weight:950;text-shadow:0 0 22px var(--accent-glow)}
   .hero p{color:var(--text-secondary);font-size:.92rem;margin-top:.5rem}
   .mobile-kicker{font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.24em;font-size:.64rem;font-weight:800;color:var(--text-secondary);margin-bottom:.8rem}
-  .controller-swirl{height:220vh;margin:.25rem 0 5rem}
+  .controller-swirl{height:320vh;margin:.25rem 0 5rem}
   .controller-swirl .swirl-sticky{top:max(.25rem,calc((100dvh - 52px - 520px)/2));height:520px;width:100%;perspective:2000px}
   .controller-swirl .swirl-card{width:min(86vw,360px);min-height:240px;padding:1.55rem;text-decoration:none;color:var(--text-primary)}
   .controller-swirl .s-icon{font-family:'JetBrains Mono',monospace;font-size:2rem;color:var(--accent)}
@@ -51,6 +51,8 @@
   .mode-row button{flex:1;padding:.45rem;border-radius:var(--radius-xs);font-size:.78rem;font-weight:800;color:var(--text-secondary)}
   .mode-row button.active{background:var(--accent);color:#071016}
   .form-group{margin-bottom:.75rem}.form-group label{display:block;font-size:.72rem;font-weight:800;color:var(--text-secondary);margin-bottom:.3rem;text-transform:uppercase;letter-spacing:.04em}
+  .key-picker-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.4rem}.key-picker-row .btn{min-height:42px}
+  .field-help{display:block;margin-top:.28rem;color:var(--text-muted);font-size:.68rem;line-height:1.35}
   .shape-picker{display:flex;gap:.4rem;flex-wrap:wrap}.shape-opt{width:40px;height:40px;border-radius:var(--radius-xs);display:flex;align-items:center;justify-content:center;font-size:.72rem;background:var(--bg-glass);border:1px solid var(--border-glass);cursor:pointer}.shape-opt.active{background:var(--accent);color:#071016;border-color:var(--accent)}
   .modal-sheet{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.65);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;padding:1rem}
   .modal-sheet-inner{width:min(92vw,430px);max-height:86vh;overflow:auto;padding:1.2rem;border-radius:var(--radius);background:var(--bg-secondary);border:1px solid var(--border-glass);box-shadow:var(--shadow-lg)}
@@ -60,11 +62,18 @@
   .wb-lock-btn{width:100%;min-height:52px}
   .wb-lock-btn.active{background:var(--accent);color:#071016;border-color:var(--accent);box-shadow:0 0 22px var(--accent-glow);animation:glowPulse 1.4s ease-in-out infinite}
   .wb-help{font-size:.78rem;line-height:1.55;color:var(--text-secondary);padding:.75rem;border-radius:var(--radius-sm);background:var(--bg-glass);border:1px solid var(--border-glass)}
-  .phone-wb-stage{flex:1;min-height:52vh;border-radius:var(--radius);overflow:hidden;background:#fff;border:1px solid #111;box-shadow:inset 0 0 0 1px #111,var(--shadow-md);position:relative;touch-action:none}
+  .phone-wb-fullscreen{position:fixed;inset:0;z-index:2200;background:#f7f8fb;display:flex;flex-direction:column;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);overflow:hidden}
+  .phone-wb-actions{position:absolute;top:calc(env(safe-area-inset-top) + .55rem);left:calc(env(safe-area-inset-left) + .55rem);right:calc(env(safe-area-inset-right) + .55rem);z-index:20;display:flex;justify-content:space-between;gap:.55rem;pointer-events:none}
+  .phone-wb-actions .btn{pointer-events:auto;min-height:40px;padding:.45rem .75rem;background:rgba(12,18,28,.82);color:#fff;border:1px solid rgba(255,255,255,.18);box-shadow:0 12px 32px rgba(0,0,0,.22);backdrop-filter:blur(14px)}
+  .phone-wb-menu{position:absolute;left:calc(env(safe-area-inset-left) + .55rem);right:calc(env(safe-area-inset-right) + .55rem);top:calc(env(safe-area-inset-top) + 3.55rem);z-index:19;display:flex;gap:.35rem;align-items:center;overflow-x:auto;padding:.5rem;background:rgba(12,18,28,.86);border:1px solid rgba(255,255,255,.16);border-radius:var(--radius);box-shadow:0 20px 54px rgba(0,0,0,.32);backdrop-filter:blur(18px);transition:opacity .2s ease,transform .2s ease,visibility .2s;color:#fff}
+  .phone-wb-menu.is-hidden{opacity:0;transform:translateY(-8px);visibility:hidden;pointer-events:none}
+  .phone-wb-menu .btn{min-width:42px;padding:.42rem .58rem}
+  .phone-wb-menu .btn.active{background:var(--accent);color:#071016;border-color:var(--accent)}
+  .phone-wb-menu .color-swatch{min-width:38px}
+  .phone-wb-stage{flex:1;min-height:0;width:100%;height:100%;border-radius:0;overflow:hidden;background:#fff;border:2px solid #111;box-shadow:inset 0 0 0 1px #111;position:relative;touch-action:none}
   .phone-wb-stage canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
-  .phone-wb-toolbar{display:flex;gap:.35rem;align-items:center;overflow-x:auto;padding:.45rem;background:var(--bg-glass);border:1px solid var(--border-glass);border-radius:var(--radius-sm)}
-  .phone-wb-toolbar .btn{min-width:42px;padding:.4rem .55rem}
-  .phone-wb-toolbar .btn.active{background:var(--accent);color:#071016;border-color:var(--accent)}
+  .phone-wb-hint{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom) + .8rem);transform:translateX(-50%);z-index:12;max-width:min(88vw,460px);padding:.45rem .75rem;border-radius:999px;background:rgba(12,18,28,.82);color:#fff;font-size:.72rem;font-weight:800;text-align:center;pointer-events:none;box-shadow:0 12px 34px rgba(0,0,0,.22)}
+  .phone-wb-zoom{position:absolute;right:calc(env(safe-area-inset-right) + .8rem);bottom:calc(env(safe-area-inset-bottom) + .8rem);z-index:13;padding:.35rem .6rem;border-radius:999px;background:rgba(12,18,28,.82);color:#fff;font:700 .72rem 'JetBrains Mono',monospace;pointer-events:none}
   .hidden-view{display:none!important}
 </style>
 </head>
@@ -163,7 +172,8 @@ function updateControllerSwirl() {
   const progress = Math.max(0, Math.min(1, sectionHeight <= 0 ? 0 : -top / sectionHeight));
   const hold = 0.2;
   const adjusted = progress < hold ? 0 : progress > 1 - hold ? 1 : (progress - hold) / (1 - 2 * hold);
-  const spiralAngle = adjusted * (4 / 5) * Math.PI * 2;
+  const paused = applyCardScrollPause(adjusted, 5, 0.54);
+  const spiralAngle = paused * (4 / 5) * Math.PI * 2;
 
   for (let i = 0; i < 5; i += 1) {
     const card = document.getElementById(`swirl-${i}`);
@@ -181,6 +191,20 @@ function updateControllerSwirl() {
     card.style.visibility = opacity > 0 ? 'visible' : 'hidden';
     card.style.boxShadow = glow ? `0 0 ${40 * glow}px var(--accent-glow), inset 0 0 ${20 * glow}px var(--accent-glow)` : '';
   }
+}
+function applyCardScrollPause(t, count, holdRatio) {
+  const steps = count - 1;
+  if (t <= 0) return 0;
+  if (t >= 1) return 1;
+  const scaled = t * steps;
+  const index = Math.min(steps - 1, Math.floor(scaled));
+  const local = scaled - index;
+  const edge = holdRatio / 2;
+  if (local <= edge) return index / steps;
+  if (local >= 1 - edge) return (index + 1) / steps;
+  const u = (local - edge) / (1 - holdRatio);
+  const eased = u * u * (3 - 2 * u);
+  return (index + eased) / steps;
 }
 document.querySelector('.controller-main')?.addEventListener('scroll', updateControllerSwirl, { passive: true });
 window.addEventListener('resize', updateControllerSwirl);
@@ -235,28 +259,50 @@ function showKb(which,btn){['Alpha','Num','Fn'].forEach(x=>document.getElementBy
 function toggleNative(){document.getElementById('nativeInput').classList.toggle('hidden-view');document.getElementById('nativeInput').focus()}
 
 function whiteboardMarkup(){return `
-  <div class="phone-wb-toolbar" id="phoneWhiteboardRoot">
-    <button class="btn btn-sm" data-wb-tool="pen" title="Pen">✎</button>
-    <button class="btn btn-sm" data-wb-tool="eraser" title="Eraser">⌫</button>
-    <button class="btn btn-sm" data-wb-tool="rect" title="Rectangle">▭</button>
-    <button class="btn btn-sm" data-wb-tool="diamond" title="Diamond">◇</button>
-    <button class="btn btn-sm" data-wb-tool="ellipse" title="Ellipse">◯</button>
-    <button class="btn btn-sm" data-wb-tool="line" title="Line">╱</button>
-    <button class="btn btn-sm" data-wb-tool="arrow" title="Arrow">→</button>
-    <button class="btn btn-sm" data-wb-tool="text" title="Text">T</button>
-    <input type="color" class="color-swatch" data-wb-color value="#111111" title="Color">
-    <input type="range" class="slider" data-wb-size min="1" max="14" value="4" style="min-width:90px" title="Size">
-    <button class="btn btn-sm" data-wb-undo title="Undo">↩</button>
-    <button class="btn btn-sm" data-wb-redo title="Redo">↪</button>
-    <button class="btn btn-sm btn-danger" data-wb-clear title="Clear">×</button>
-  </div>
-  <div class="phone-wb-stage"><canvas id="phoneWhiteboardCanvas"></canvas></div>`}
+  <div class="phone-wb-fullscreen" id="phoneWhiteboardRoot">
+    <div class="phone-wb-actions">
+      <button class="btn btn-sm" type="button" id="phoneWbMenuBtn">Menu</button>
+      <button class="btn btn-sm" type="button" onclick="goHome()">Exit</button>
+    </div>
+    <div class="phone-wb-menu is-hidden" id="phoneWhiteboardMenu">
+      <button class="btn btn-sm" data-wb-tool="pen" title="Pen">P</button>
+      <button class="btn btn-sm" data-wb-tool="eraser" title="Eraser">E</button>
+      <button class="btn btn-sm" data-wb-tool="rect" title="Rectangle">▭</button>
+      <button class="btn btn-sm" data-wb-tool="diamond" title="Diamond">◇</button>
+      <button class="btn btn-sm" data-wb-tool="ellipse" title="Ellipse">○</button>
+      <button class="btn btn-sm" data-wb-tool="line" title="Line">╱</button>
+      <button class="btn btn-sm" data-wb-tool="arrow" title="Arrow">→</button>
+      <button class="btn btn-sm" data-wb-tool="text" title="Text">T</button>
+      <button class="btn btn-sm" data-wb-tool="hand" title="Pan">H</button>
+      <select class="input" data-wb-fill title="Fill" style="min-width:86px;height:38px;padding:.25rem .45rem"><option value="none">No fill</option><option value="solid">Fill</option></select>
+      <input type="color" class="color-swatch" data-wb-color value="#111111" title="Color">
+      <input type="range" class="slider" data-wb-size min="1" max="14" value="4" style="min-width:110px" title="Size">
+      <button class="btn btn-sm" data-wb-undo title="Undo">↩</button>
+      <button class="btn btn-sm" data-wb-redo title="Redo">↪</button>
+      <button class="btn btn-sm btn-danger" data-wb-clear title="Clear">×</button>
+      <button class="btn btn-sm btn-success" data-wb-export title="Download PNG">PNG</button>
+      <button class="btn btn-sm" type="button" onclick="requestAppFullscreen(document.getElementById('phoneWhiteboardRoot'))">FS</button>
+      <button class="btn btn-sm" data-wb-reset title="Reset zoom">Reset</button>
+    </div>
+    <div class="phone-wb-stage">
+      <canvas id="phoneWhiteboardCanvas"></canvas>
+      <div class="phone-wb-hint">Use a smart pen or stylus for a better drawing experience.</div>
+      <div class="phone-wb-zoom" data-wb-zoom>100%</div>
+    </div>
+  </div>`}
 
 function initWhiteboard(){
   phoneWhiteboard = PhoneLinkWhiteboard.create({
     canvas: document.getElementById('phoneWhiteboardCanvas'),
     root: document.getElementById('phoneWhiteboardRoot'),
     send: event => PhoneBridge.sendWhiteboard(event)
+  });
+  const menu = document.getElementById('phoneWhiteboardMenu');
+  document.getElementById('phoneWbMenuBtn')?.addEventListener('click', () => {
+    menu?.classList.toggle('is-hidden');
+  });
+  menu?.addEventListener('click', e => {
+    if (e.target.closest('button')) setTimeout(() => menu.classList.add('is-hidden'), 120);
   });
 }
 
@@ -280,9 +326,9 @@ function builderMarkup(){return `
     <div class="modal-sheet-inner">
       <h3 style="font-size:1rem;font-weight:900;margin-bottom:1rem" id="modalTitle">Add Key</h3>
       <div class="form-group"><label>Label</label><input type="text" class="input" id="kLabel" placeholder="A" maxlength="10"></div>
-      <div class="form-group"><label>Action Type</label><select class="input" id="kAction"><option value="key">Single Key</option><option value="combo">Modifier + Key</option><option value="text">Text String</option><option value="macro">Macro Sequence</option><option value="mouse">Mouse Click</option></select></div>
-      <div class="form-group"><label>Key / Value</label><input type="text" class="input" id="kValue" placeholder="KeyA or text..."></div>
-      <div class="form-group"><label>Modifiers</label><input type="text" class="input" id="kMods" placeholder="ControlLeft, ShiftLeft"></div>
+      <div class="form-group"><label>Action Type</label><select class="input" id="kAction" onchange="refreshBuilderPickers()"><option value="key">Single Key</option><option value="combo">Modifier + Key</option><option value="text">Text String</option><option value="macro">Macro Sequence</option><option value="mouse">Mouse Click</option></select></div>
+      <div class="form-group"><label>Key / Value</label><div class="key-picker-row"><select class="input" id="kValuePreset" onchange="applyBuilderValue(this.value)"></select><input type="text" class="input" id="kValue" placeholder="KeyA or text..."></div><small class="field-help" id="kValueHelp"></small></div>
+      <div class="form-group"><label>Modifiers</label><div class="key-picker-row"><select class="input" id="kModPreset"></select><button class="btn" type="button" onclick="addBuilderModifier()">Add</button></div><input type="text" class="input" id="kMods" placeholder="ControlLeft, ShiftLeft" style="margin-top:.4rem"><small class="field-help">Use Add for compact selection, or edit the comma-separated list directly.</small></div>
       <div class="form-group flex gap-sm"><div style="flex:1"><label>Width</label><input type="number" class="input" id="kWidth" value="60" min="44" max="190"></div><div style="flex:1"><label>Height</label><input type="number" class="input" id="kHeight" value="60" min="44" max="190"></div></div>
       <div class="form-group flex gap-sm"><div style="flex:1"><label>BG Color</label><input type="color" class="input" id="kBg" value="#4ddcff" style="height:42px;padding:2px"></div><div style="flex:1"><label>Text Color</label><input type="color" class="input" id="kFg" value="#071016" style="height:42px;padding:2px"></div></div>
       <div class="form-group"><label>Shape</label><div class="shape-picker"><div class="shape-opt active" data-shape="square" onclick="pickShape(this)" style="border-radius:6px">■</div><div class="shape-opt" data-shape="pill" onclick="pickShape(this)" style="border-radius:20px">Pill</div><div class="shape-opt" data-shape="circle" onclick="pickShape(this)" style="border-radius:50%">●</div><div class="shape-opt" data-shape="hex" onclick="pickShape(this)">⬡</div><div class="shape-opt" data-shape="cut" onclick="pickShape(this)" style="border-radius:12px 0 12px 0">◇</div></div></div>
@@ -291,6 +337,29 @@ function builderMarkup(){return `
     </div>
   </div>`}
 
+const builderKeyMap = {
+  ArrowRight:'Right', ArrowLeft:'Left', ArrowUp:'Up', ArrowDown:'Down',
+  Space:'Space', Enter:'Return', Escape:'Escape', Backspace:'Backspace',
+  Tab:'Tab', Delete:'Delete', CapsLock:'CapsLock',
+  ShiftLeft:'LeftShift', ShiftRight:'RightShift', ControlLeft:'LeftControl',
+  ControlRight:'RightControl', AltLeft:'LeftAlt', AltRight:'RightAlt',
+  MetaLeft:'LeftSuper', MetaRight:'RightSuper',
+  F1:'F1', F2:'F2', F3:'F3', F4:'F4', F5:'F5', F6:'F6', F7:'F7', F8:'F8',
+  F9:'F9', F10:'F10', F11:'F11', F12:'F12',
+  MediaPlayPause:'AudioPlay', MediaNextTrack:'AudioNext', MediaPrevTrack:'AudioPrev',
+  AudioVolumeUp:'AudioVolUp', AudioVolumeDown:'AudioVolDown', AudioVolumeMute:'AudioMute',
+  KeyA:'A', KeyB:'B', KeyC:'C', KeyD:'D', KeyE:'E', KeyF:'F', KeyG:'G', KeyH:'H',
+  KeyI:'I', KeyJ:'J', KeyK:'K', KeyL:'L', KeyM:'M', KeyN:'N', KeyO:'O', KeyP:'P',
+  KeyQ:'Q', KeyR:'R', KeyS:'S', KeyT:'T', KeyU:'U', KeyV:'V', KeyW:'W', KeyX:'X',
+  KeyY:'Y', KeyZ:'Z',
+  Digit0:'Num0', Digit1:'Num1', Digit2:'Num2', Digit3:'Num3', Digit4:'Num4',
+  Digit5:'Num5', Digit6:'Num6', Digit7:'Num7', Digit8:'Num8', Digit9:'Num9'
+};
+const builderModifierKeys = ['ControlLeft','ControlRight','ShiftLeft','ShiftRight','AltLeft','AltRight','MetaLeft','MetaRight'];
+function keyOptionsHTML(includeBlank=true){return (includeBlank?'<option value="">Choose key...</option>':'')+Object.entries(builderKeyMap).map(([code,label])=>`<option value="${code}">${label} (${code})</option>`).join('')}
+function refreshBuilderPickers(){const action=document.getElementById('kAction')?.value, preset=document.getElementById('kValuePreset'), value=document.getElementById('kValue'), mods=document.getElementById('kMods'), modPreset=document.getElementById('kModPreset'), help=document.getElementById('kValueHelp');if(!preset||!value)return;if(modPreset)modPreset.innerHTML=builderModifierKeys.map(k=>`<option value="${k}">${builderKeyMap[k]} (${k})</option>`).join('');if(action==='mouse'){preset.disabled=false;preset.innerHTML='<option value="">Choose click...</option><option value="left">Left click</option><option value="right">Right click</option><option value="middle">Middle click</option>';value.placeholder='left, right, or middle';if(help)help.textContent='Pick the mouse button to send.'}else if(action==='text'){preset.disabled=true;preset.innerHTML='<option>Custom text</option>';value.placeholder='Type the text this key should send';if(help)help.textContent='Enter any text string.'}else if(action==='macro'){preset.disabled=false;preset.innerHTML='<option value="">Insert key into macro...</option>'+keyOptionsHTML(false);value.placeholder='KeyA, KeyB, Enter';if(help)help.textContent='Use the dropdown to append keys, or type comma-separated key codes.'}else{preset.disabled=false;preset.innerHTML=keyOptionsHTML(true);value.placeholder='Choose from dropdown';if(help)help.textContent=action==='combo'?'Choose the main key, then add modifiers below.':'Choose the key this button should send.'}if(action!=='combo'&&mods)mods.value=''}
+function applyBuilderValue(v){if(!v)return;const action=document.getElementById('kAction')?.value, value=document.getElementById('kValue');if(!value)return;if(action==='macro'){const parts=value.value.split(',').map(s=>s.trim()).filter(Boolean);parts.push(v);value.value=parts.join(', ')}else value.value=v}
+function addBuilderModifier(){const sel=document.getElementById('kModPreset'), mods=document.getElementById('kMods');if(!sel||!mods||!sel.value)return;const list=mods.value.split(',').map(s=>s.trim()).filter(Boolean);if(!list.includes(sel.value))list.push(sel.value);mods.value=list.join(', ')}
 let keys=[], selectedId=null, editingId=null, builderMode='edit', layoutHistory=[], layoutRedoStack=[], chosenShape='square', nextId=1, repeatInterval=null;
 function initBuilder(){try{keys=JSON.parse(localStorage.getItem('pb-custom-kb')||'[]')}catch(e){keys=[]}selectedId=null;editingId=null;builderMode='edit';layoutHistory=[];layoutRedoStack=[];nextId=Math.max(0,...keys.map(k=>k.id||0))+1;renderBuilder()}
 function renderBuilder(){const area=document.getElementById('builderArea');if(!area)return;area.innerHTML='';keys.forEach(k=>{const el=document.createElement('button');el.type='button';el.className='custom-key'+(k.id===selectedId?' selected':'')+(builderMode==='test'?' testing':'');el.dataset.id=k.id;Object.assign(el.style,{left:k.x+'%',top:k.y+'%',width:k.w+'px',height:k.h+'px',backgroundColor:k.bg,color:k.fg,fontSize:Math.max(10,Math.min(k.w,k.h)*.3)+'px'});if(k.shape==='pill')el.style.borderRadius=Math.min(k.w,k.h)/2+'px';else if(k.shape==='circle')el.style.borderRadius='50%';else if(k.shape==='cut')el.style.borderRadius='12px 0 12px 0';else if(k.shape==='hex'){el.style.borderRadius='8px';el.style.clipPath='polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%)'}else el.style.borderRadius='8px';el.textContent=k.label;if(builderMode==='edit'){el.addEventListener('pointerdown',e=>startDragKey(e,k));el.addEventListener('click',()=>selectKey(k.id))}else{el.addEventListener('touchstart',e=>{e.preventDefault();testKeyDown(k)},{passive:false});el.addEventListener('touchend',e=>{e.preventDefault();testKeyUp(k)},{passive:false});el.addEventListener('click',()=>fireKey(k))}area.appendChild(el)});document.getElementById('keyCount').textContent=`Keys: ${keys.length}`;socket.emit('custom-kb-layout',{keys})}
@@ -300,8 +369,8 @@ function selectKey(id){selectedId=selectedId===id?null:id;renderBuilder()}
 function testKeyDown(k){haptic('medium');fireKey(k);if(k.repeat){repeatInterval=setInterval(()=>fireKey(k),100)}}
 function testKeyUp(){if(repeatInterval){clearInterval(repeatInterval);repeatInterval=null}}
 function fireKey(k){if(k.action==='key')PhoneBridge.sendKey(k.value);else if(k.action==='combo')PhoneBridge.sendKey(k.value,k.mods||[]);else if(k.action==='text')PhoneBridge.sendText(k.value);else if(k.action==='macro')(k.value||'').split(',').map(x=>x.trim()).filter(Boolean).forEach((key,i)=>setTimeout(()=>PhoneBridge.sendKey(key),i*55));else if(k.action==='mouse')PhoneBridge.sendMouseClick(k.value||'left')}
-function openAddModal(){editingId=null;document.getElementById('modalTitle').textContent='Add Key';document.getElementById('kLabel').value='';document.getElementById('kAction').value='key';document.getElementById('kValue').value='';document.getElementById('kMods').value='';document.getElementById('kWidth').value=60;document.getElementById('kHeight').value=60;document.getElementById('kBg').value='#4ddcff';document.getElementById('kFg').value='#071016';document.getElementById('kHold').checked=false;document.getElementById('kRepeat').checked=false;chosenShape='square';updateShapePicker();document.getElementById('builderKeyModal').classList.remove('hidden')}
-function editSelected(){if(!selectedId){Toast.show('Select a key first','info');return}const k=keys.find(k=>k.id===selectedId);if(!k)return;editingId=k.id;document.getElementById('modalTitle').textContent='Edit Key';document.getElementById('kLabel').value=k.label;document.getElementById('kAction').value=k.action;document.getElementById('kValue').value=k.value||'';document.getElementById('kMods').value=(k.mods||[]).join(', ');document.getElementById('kWidth').value=k.w;document.getElementById('kHeight').value=k.h;document.getElementById('kBg').value=k.bg;document.getElementById('kFg').value=k.fg;document.getElementById('kHold').checked=!!k.hold;document.getElementById('kRepeat').checked=!!k.repeat;chosenShape=k.shape||'square';updateShapePicker();document.getElementById('builderKeyModal').classList.remove('hidden')}
+function openAddModal(){editingId=null;document.getElementById('modalTitle').textContent='Add Key';document.getElementById('kLabel').value='';document.getElementById('kAction').value='key';document.getElementById('kValue').value='';document.getElementById('kMods').value='';document.getElementById('kWidth').value=60;document.getElementById('kHeight').value=60;document.getElementById('kBg').value='#4ddcff';document.getElementById('kFg').value='#071016';document.getElementById('kHold').checked=false;document.getElementById('kRepeat').checked=false;chosenShape='square';updateShapePicker();document.getElementById('builderKeyModal').classList.remove('hidden');refreshBuilderPickers()}
+function editSelected(){if(!selectedId){Toast.show('Select a key first','info');return}const k=keys.find(k=>k.id===selectedId);if(!k)return;editingId=k.id;document.getElementById('modalTitle').textContent='Edit Key';document.getElementById('kLabel').value=k.label;document.getElementById('kAction').value=k.action;document.getElementById('kValue').value=k.value||'';document.getElementById('kMods').value=(k.mods||[]).join(', ');document.getElementById('kWidth').value=k.w;document.getElementById('kHeight').value=k.h;document.getElementById('kBg').value=k.bg;document.getElementById('kFg').value=k.fg;document.getElementById('kHold').checked=!!k.hold;document.getElementById('kRepeat').checked=!!k.repeat;chosenShape=k.shape||'square';updateShapePicker();document.getElementById('builderKeyModal').classList.remove('hidden');refreshBuilderPickers()}
 function closeModal(){document.getElementById('builderKeyModal')?.classList.add('hidden')}
 function pickShape(el){chosenShape=el.dataset.shape;updateShapePicker()}
 function updateShapePicker(){document.querySelectorAll('#builderKeyModal .shape-opt').forEach(s=>s.classList.toggle('active',s.dataset.shape===chosenShape))}

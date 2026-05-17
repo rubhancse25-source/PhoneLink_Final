@@ -53,6 +53,7 @@
       canvas.width  = Math.max(1, Math.round(W * dpr));
       canvas.height = Math.max(1, Math.round(H * dpr));
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      constrainView();
       markDirty();
     }
 
@@ -66,6 +67,20 @@
     }
     function worldToCanvas(wx, wy) {
       return { x: wx * S.zoom + S.panX, y: wy * S.zoom + S.panY };
+    }
+    function constrainView() {
+      const W = canvas.offsetWidth  || 800;
+      const H = canvas.offsetHeight || 600;
+      if (S.zoom <= 1) {
+        S.zoom = 1;
+        S.panX = 0;
+        S.panY = 0;
+        return;
+      }
+      const minX = W - W * S.zoom;
+      const minY = H - H * S.zoom;
+      S.panX = clamp(S.panX, minX, 0);
+      S.panY = clamp(S.panY, minY, 0);
     }
     // Normalise world → [0,1] relative to logical canvas size
     function norm(wx, wy) {
@@ -244,6 +259,7 @@
       if (S.panning && S.panStart) {
         S.panX = e.clientX - S.panStart.x;
         S.panY = e.clientY - S.panStart.y;
+        constrainView();
         markDirty();
         return;
       }
@@ -312,7 +328,8 @@
       const cy = e.clientY - r.top;
       S.panX = cx - (cx - S.panX) * factor;
       S.panY = cy - (cy - S.panY) * factor;
-      S.zoom = clamp(S.zoom * factor, 0.1, 20);
+      S.zoom = clamp(S.zoom * factor, 1, 20);
+      constrainView();
       updateZoomLabel();
       markDirty();
     }
@@ -349,9 +366,10 @@
         const r       = canvas.getBoundingClientRect();
         const cx      = pinchState.midX - r.left;
         const cy      = pinchState.midY - r.top;
-        S.zoom = clamp(pinchState.zoom * scale, 0.1, 20);
+        S.zoom = clamp(pinchState.zoom * scale, 1, 20);
         S.panX = newMidX - r.left - (cx - pinchState.panX) * (S.zoom / pinchState.zoom);
         S.panY = newMidY - r.top  - (cy - pinchState.panY) * (S.zoom / pinchState.zoom);
+        constrainView();
         updateZoomLabel();
         markDirty();
       }
@@ -367,7 +385,10 @@
       if (textOverlay) textOverlay.remove();
       const cp = worldToCanvas(wx, wy);
       const r  = canvas.getBoundingClientRect();
+      const host = document.fullscreenElement || options.root || document.body;
       const ta = document.createElement('textarea');
+      ta.placeholder = 'Enter text';
+      ta.inputMode = 'text';
       ta.style.cssText = [
         `position:fixed`,
         `left:${r.left + cp.x}px`,
@@ -386,10 +407,11 @@
         `z-index:9999`,
         `box-shadow:0 4px 24px rgba(0,0,0,.2)`,
       ].join(';');
-      document.body.appendChild(ta);
-      ta.focus();
+      host.appendChild(ta);
       textOverlay = ta;
+      requestAnimationFrame(() => ta.focus());
       const commit = () => {
+        if (!textOverlay) return;
         const text = ta.value.trim();
         ta.remove();
         textOverlay = null;
@@ -408,6 +430,7 @@
       ta.addEventListener('blur', commit);
       ta.addEventListener('keydown', e => {
         if (e.key === 'Escape') { ta.value = ''; ta.blur(); }
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') ta.blur();
       });
     }
 

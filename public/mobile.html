@@ -18,7 +18,7 @@
   .mobile-hero h1{font-family:'Space Grotesk',sans-serif;font-size:clamp(2.4rem,15vw,4.2rem);line-height:1.02;letter-spacing:-.035em;font-weight:900;text-shadow:0 0 22px var(--accent-glow)}
   .mobile-hero p{max-width:23rem;color:var(--text-secondary);font-size:.95rem;margin-top:1rem}
   .scroll-cue{margin-top:1.3rem;color:var(--text-muted);font-size:.72rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
-  .mobile-swirl{height:220vh;margin-top:-.5rem;margin-bottom:1rem}
+  .mobile-swirl{height:320vh;margin-top:-.5rem;margin-bottom:1rem}
   .mobile-swirl .swirl-sticky{top:max(.25rem,calc((100dvh - 52px - 520px)/2));height:520px;width:100%;perspective:2000px}
   .mobile-swirl .swirl-card{width:min(86vw,360px);min-height:240px;padding:1.55rem;text-decoration:none;color:var(--text-primary)}
   .mobile-swirl .s-icon{font-family:'JetBrains Mono',monospace;font-size:2rem;color:var(--accent)}
@@ -99,7 +99,8 @@ function updateFeatureSwirl() {
   const progress = Math.max(0, Math.min(1, sectionHeight <= 0 ? 0 : -rect.top / sectionHeight));
   const hold = 0.2;
   const adjusted = progress < hold ? 0 : progress > 1 - hold ? 1 : (progress - hold) / (1 - 2 * hold);
-  const spiralAngle = adjusted * (4 / 5) * Math.PI * 2;
+  const paused = applyCardScrollPause(adjusted, 5, 0.54);
+  const spiralAngle = paused * (4 / 5) * Math.PI * 2;
 
   for (let i = 0; i < 5; i += 1) {
     const card = document.getElementById(`swirl-${i}`);
@@ -117,6 +118,20 @@ function updateFeatureSwirl() {
     card.style.visibility = opacity > 0 ? 'visible' : 'hidden';
     card.style.boxShadow = glow ? `0 0 ${40 * glow}px var(--accent-glow), inset 0 0 ${20 * glow}px var(--accent-glow)` : '';
   }
+}
+function applyCardScrollPause(t, count, holdRatio) {
+  const steps = count - 1;
+  if (t <= 0) return 0;
+  if (t >= 1) return 1;
+  const scaled = t * steps;
+  const index = Math.min(steps - 1, Math.floor(scaled));
+  const local = scaled - index;
+  const edge = holdRatio / 2;
+  if (local <= edge) return index / steps;
+  if (local >= 1 - edge) return (index + 1) / steps;
+  const u = (local - edge) / (1 - holdRatio);
+  const eased = u * u * (3 - 2 * u);
+  return (index + eased) / steps;
 }
 window.addEventListener('scroll', updateFeatureSwirl, { passive: true });
 window.addEventListener('load', updateFeatureSwirl);

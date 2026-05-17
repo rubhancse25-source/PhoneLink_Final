@@ -1,6 +1,6 @@
 /* ======================================================================
    PhoneLink Design System
-   Glass UI, compact mobile controls, 24 themes, production primitives
+   Glass UI, compact mobile controls, 4 themes, production primitives
    ====================================================================== */
 
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
@@ -51,65 +51,6 @@ input,select,textarea{outline:0}
   --accent2:#ffffff; --accent2-glow:rgba(255,255,255,.12);
   --danger:#ff5252; --success:#d8d8d8; --warning:#f1f1f1;
 }
-[data-theme="cosmic-purple"] {
-  --bg-primary:#1a0b2e; --bg-secondary:#2d1b4e; --bg-card:rgba(45,27,78,.68);
-  --bg-glass:rgba(255,255,255,.055); --bg-glass-strong:rgba(255,255,255,.105);
-  --border-glass:rgba(200,150,255,.15); --border-glow:rgba(180,100,255,.34);
-  --text-primary:#f8f0ff; --text-secondary:#d4b3ff; --text-muted:#9b7aad;
-  --accent:#d580ff; --accent-glow:rgba(213,128,255,.34);
-  --accent2:#ff7eb3; --accent2-glow:rgba(255,126,179,.32);
-  --danger:#ff4d6d; --success:#28e6a7; --warning:#ffc857;
-}
-[data-theme="ocean-depths"] {
-  --bg-primary:#00111f; --bg-secondary:#00223e; --bg-card:rgba(0,34,62,.68);
-  --bg-glass:rgba(255,255,255,.055); --bg-glass-strong:rgba(255,255,255,.105);
-  --border-glass:rgba(100,200,255,.15); --border-glow:rgba(50,150,255,.34);
-  --text-primary:#e0f2ff; --text-secondary:#99d1ff; --text-muted:#5c9bbd;
-  --accent:#00bfff; --accent-glow:rgba(0,191,255,.34);
-  --accent2:#00ffcc; --accent2-glow:rgba(0,255,204,.32);
-  --danger:#ff4d6d; --success:#00ffcc; --warning:#ffc857;
-}
-[data-theme="forest-mint"] {
-  --bg-primary:#0a1a12; --bg-secondary:#122e1f; --bg-card:rgba(18,46,31,.68);
-  --bg-glass:rgba(255,255,255,.055); --bg-glass-strong:rgba(255,255,255,.105);
-  --border-glass:rgba(150,255,180,.15); --border-glow:rgba(80,250,120,.34);
-  --text-primary:#e8f7ec; --text-secondary:#a3e0b9; --text-muted:#6b9a7c;
-  --accent:#4ade80; --accent-glow:rgba(74,222,128,.34);
-  --accent2:#2dd4bf; --accent2-glow:rgba(45,212,191,.32);
-  --danger:#ff4d6d; --success:#4ade80; --warning:#fcd34d;
-}
-[data-theme="cyber-punk"] {
-  --bg-primary:#050510; --bg-secondary:#120422; --bg-card:rgba(18,4,34,.68);
-  --bg-glass:rgba(255,255,255,.055); --bg-glass-strong:rgba(255,255,255,.105);
-  --border-glass:rgba(255,0,150,.15); --border-glow:rgba(255,0,255,.34);
-  --text-primary:#fff; --text-secondary:#ff00ea; --text-muted:#a30095;
-  --accent:#ff00ea; --accent-glow:rgba(255,0,234,.34);
-  --accent2:#00ffff; --accent2-glow:rgba(0,255,255,.32);
-  --danger:#ff2a2a; --success:#00ff00; --warning:#ffea00;
-}
-[data-theme="solar-flare"] {
-  --bg-primary:#1a0500; --bg-secondary:#330a00; --bg-card:rgba(51,10,0,.68);
-  --bg-glass:rgba(255,255,255,.055); --bg-glass-strong:rgba(255,255,255,.105);
-  --border-glass:rgba(255,150,50,.15); --border-glow:rgba(255,100,0,.34);
-  --text-primary:#fff0e6; --text-secondary:#ffaa80; --text-muted:#bf6640;
-  --accent:#ff5500; --accent-glow:rgba(255,85,0,.34);
-  --accent2:#ffbb00; --accent2-glow:rgba(255,187,0,.32);
-  --danger:#ff2a2a; --success:#4ade80; --warning:#ffbb00;
-}
-[data-theme="velvet-plum"], [data-theme="neon-tokyo"], [data-theme="synthwave"], [data-theme="deep-space"],
-[data-theme="arctic-frost"], [data-theme="magma-red"], [data-theme="golden-hour"], [data-theme="dusty-rose"],
-[data-theme="emerald-city"], [data-theme="vaporwave"], [data-theme="stealth-mode"], [data-theme="retro-arcade"],
-[data-theme="amethyst"], [data-theme="blood-moon"], [data-theme="toxic-green"] {
-  /* Fallback template to make the rest valid */
-  --bg-primary:#111; --bg-secondary:#1a1a1a; --bg-card:rgba(26,26,26,.68);
-  --bg-glass:rgba(255,255,255,.055); --bg-glass-strong:rgba(255,255,255,.105);
-  --border-glass:rgba(200,200,200,.15); --border-glow:rgba(200,200,200,.34);
-  --text-primary:#f0f0f0; --text-secondary:#aaa; --text-muted:#777;
-  --accent:#5c7aff; --accent-glow:rgba(92,122,255,.34);
-  --accent2:#db5cff; --accent2-glow:rgba(219,92,255,.32);
-  --danger:#ff4d6d; --success:#28e6a7; --warning:#ffc857;
-}
-
 :root {
   --shadow-sm:0 6px 18px rgba(0,0,0,.24);
   --shadow-md:0 14px 42px rgba(0,0,0,.34);

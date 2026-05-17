@@ -213,38 +213,13 @@ const PhoneBridge = {
 const ThemeManager = {
   current: 'dark-galaxy',
   themes: [
-    'dark-galaxy', 'aurora-glass', 'sunset-glass', 'minimal-mono',
-    'cosmic-purple', 'ocean-depths', 'forest-mint', 'cyber-punk',
-    'solar-flare', 'velvet-plum', 'neon-tokyo', 'synthwave',
-    'deep-space', 'arctic-frost', 'magma-red', 'golden-hour',
-    'dusty-rose', 'emerald-city', 'vaporwave', 'stealth-mode',
-    'retro-arcade', 'amethyst', 'blood-moon', 'toxic-green'
+    'dark-galaxy', 'aurora-glass', 'sunset-glass', 'minimal-mono'
   ],
   labels: {
     'dark-galaxy': 'Dark Galaxy',
     'aurora-glass': 'Aurora Glass',
     'sunset-glass': 'Sunset Glass',
-    'minimal-mono': 'Minimal Mono',
-    'cosmic-purple': 'Cosmic Purple',
-    'ocean-depths': 'Ocean Depths',
-    'forest-mint': 'Forest Mint',
-    'cyber-punk': 'Cyber Punk',
-    'solar-flare': 'Solar Flare',
-    'velvet-plum': 'Velvet Plum',
-    'neon-tokyo': 'Neon Tokyo',
-    'synthwave': 'Synthwave',
-    'deep-space': 'Deep Space',
-    'arctic-frost': 'Arctic Frost',
-    'magma-red': 'Magma Red',
-    'golden-hour': 'Golden Hour',
-    'dusty-rose': 'Dusty Rose',
-    'emerald-city': 'Emerald City',
-    'vaporwave': 'Vaporwave',
-    'stealth-mode': 'Stealth Mode',
-    'retro-arcade': 'Retro Arcade',
-    'amethyst': 'Amethyst',
-    'blood-moon': 'Blood Moon',
-    'toxic-green': 'Toxic Green'
+    'minimal-mono': 'Minimal Mono'
   },
   aliases: { dark: 'dark-galaxy', neon: 'aurora-glass', glass: 'sunset-glass', mono: 'minimal-mono' },
 
