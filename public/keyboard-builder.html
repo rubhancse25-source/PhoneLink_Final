@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark-galaxy">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>PhoneLink – Custom Keyboard Builder</title>
+<link rel="stylesheet" href="common.css">
+<style>
+  .builder-area{flex:1;position:relative;border-radius:var(--radius);background:var(--bg-glass);border:1px solid var(--border-glass);overflow:hidden;min-height:300px;touch-action:none}
+  .custom-key{position:absolute;display:flex;align-items:center;justify-content:center;font-weight:600;cursor:grab;user-select:none;transition:box-shadow .15s;border:2px solid rgba(255,255,255,.1);z-index:1}
+  .custom-key:active{cursor:grabbing;z-index:10}
+  .custom-key.selected{border-color:var(--accent)!important;box-shadow:0 0 16px var(--accent-glow)}
+  .custom-key.testing:active{transform:scale(.92);box-shadow:0 0 20px var(--accent-glow)}
+  .builder-toolbar{display:flex;gap:.3rem;flex-wrap:wrap;padding:.5rem;background:var(--bg-glass);border-radius:var(--radius-sm);border:1px solid var(--border-glass)}
+  .builder-toolbar .btn{padding:.35rem .6rem;font-size:.72rem}
+  .mode-row{display:flex;gap:.3rem;padding:.25rem;background:var(--bg-glass);border-radius:var(--radius-sm);border:1px solid var(--border-glass)}
+  .mode-row button{flex:1;padding:.4rem;border-radius:var(--radius-xs);font-size:.78rem;font-weight:600;color:var(--text-secondary);background:transparent;transition:all .2s}
+  .mode-row button.active{background:var(--accent);color:#fff}
+  /* Modal */
+  .key-modal{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.65);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center}
+  .key-modal-inner{width:90%;max-width:400px;max-height:85vh;overflow-y:auto;padding:1.5rem;border-radius:var(--radius);background:var(--bg-secondary);border:1px solid var(--border-glass);box-shadow:var(--shadow)}
+  .form-group{margin-bottom:.8rem}
+  .form-group label{display:block;font-size:.75rem;font-weight:600;color:var(--text-secondary);margin-bottom:.3rem;text-transform:uppercase;letter-spacing:.04em}
+  .shape-picker{display:flex;gap:.4rem;flex-wrap:wrap}
+  .shape-opt{width:40px;height:40px;border-radius:var(--radius-xs);display:flex;align-items:center;justify-content:center;font-size:.7rem;background:var(--bg-glass);border:1px solid var(--border-glass);cursor:pointer;transition:all .15s}
+  .shape-opt:hover{border-color:var(--accent)}
+  .shape-opt.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="phone-layout">
+  <header class="phone-header">
+    <div style="display:flex;align-items:center;gap:.5rem">
+      <span style="font-size:1.2rem">◇</span>
+      <span style="font-weight:700;font-size:.95rem">Custom Keys</span>
+    </div>
+    <div class="flex items-center gap-sm">
+      <span id="connBadge" class="badge badge-danger">Offline</span>
+    </div>
+  </header>
+
+  <div class="phone-body" style="gap:.5rem;overflow:hidden">
+    <!-- Mode -->
+    <div class="mode-row">
+      <button class="active" id="mEdit" onclick="setMode('edit')">Edit</button>
+      <button id="mTest" onclick="setMode('test')">▶ Test</button>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="builder-toolbar animate-fade">
+      <button class="btn btn-primary" onclick="openAddModal()">+ Add Key</button>
+      <button class="btn" onclick="editSelected()">✎ Edit</button>
+      <button class="btn" onclick="deleteSelected()">Delete</button>
+      <button class="btn" onclick="undoLayout()">↩</button>
+      <button class="btn" onclick="redoLayout()">↪</button>
+      <button class="btn" onclick="clearAll()">Clear</button>
+      <button class="btn" onclick="exportJSON()">Export</button>
+      <button class="btn" onclick="document.getElementById('importFile').click()">Import</button>
+      <button class="btn btn-success" onclick="saveLocal()">Save</button>
+      <input type="file" id="importFile" accept=".json" class="hidden" onchange="importJSON(event)">
+    </div>
+
+    <!-- Builder Canvas -->
+    <div class="builder-area" id="builderArea"></div>
+  </div>
+
+  <footer class="phone-footer">
+    <div class="flex justify-center items-center" style="font-size:.75rem;color:var(--text-muted)">
+      <span id="keyCount">Keys: 0</span>
+    </div>
+  </footer>
+</div>
+
+<!-- Key Config Modal -->
+<div id="keyModal" class="key-modal hidden">
+  <div class="key-modal-inner">
+    <h3 style="font-size:1rem;font-weight:700;margin-bottom:1rem" id="modalTitle">Add Key</h3>
+
+    <div class="form-group">
+      <label>Label</label>
+      <input type="text" class="input" id="kLabel" placeholder="A" maxlength="8">
+    </div>
+
+    <div class="form-group">
+      <label>Action Type</label>
+      <select class="input" id="kAction">
+        <option value="key">Single Key</option>
+        <option value="combo">Modifier + Key</option>
+        <option value="text">Text String</option>
+        <option value="macro">Macro (sequence)</option>
+        <option value="mouse">Mouse Click</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>Key / Value</label>
+      <input type="text" class="input" id="kValue" placeholder="KeyA or text…">
+    </div>
+
+    <div class="form-group">
+      <label>Modifiers (comma-separated)</label>
+      <input type="text" class="input" id="kMods" placeholder="ControlLeft, ShiftLeft">
+    </div>
+
+    <div class="form-group" style="display:flex;gap:.5rem">
+      <div style="flex:1"><label>Width</label><input type="number" class="input" id="kWidth" value="60" min="44" max="180"></div>
+      <div style="flex:1"><label>Height</label><input type="number" class="input" id="kHeight" value="60" min="44" max="180"></div>
+    </div>
+
+    <div class="form-group" style="display:flex;gap:.5rem">
+      <div style="flex:1"><label>BG Color</label><input type="color" class="input" id="kBg" value="#6c5ce7" style="height:40px;padding:2px"></div>
+      <div style="flex:1"><label>Text Color</label><input type="color" class="input" id="kFg" value="#ffffff" style="height:40px;padding:2px"></div>
+    </div>
+
+    <div class="form-group">
+      <label>Shape</label>
+      <div class="shape-picker" id="shapePicker">
+        <div class="shape-opt active" data-shape="square" onclick="pickShape(this)" style="border-radius:6px">■</div>
+        <div class="shape-opt" data-shape="pill" onclick="pickShape(this)" style="border-radius:20px">⬬</div>
+        <div class="shape-opt" data-shape="circle" onclick="pickShape(this)" style="border-radius:50%">●</div>
+        <div class="shape-opt" data-shape="hex" onclick="pickShape(this)">⬡</div>
+        <div class="shape-opt" data-shape="cut" onclick="pickShape(this)" style="border-radius:12px 0 12px 0">◇</div>
+      </div>
+    </div>
+
+    <div class="form-group" style="display:flex;gap:1rem">
+      <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer">
+        <input type="checkbox" id="kHold"> Holdable
+      </label>
+      <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer">
+        <input type="checkbox" id="kRepeat"> Repeat
+      </label>
+    </div>
+
+    <div class="flex gap-sm" style="margin-top:1rem">
+      <button class="btn btn-primary" onclick="saveKey()">Save</button>
+      <button class="btn" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="common.js"></script>
+<script>
+/* ── Session ────────────────────────────────────────────── */
+const sessionId = PhoneBridge.getSessionFromURL();
+if (sessionId) {
+  PhoneBridge.joinAsPhone(sessionId);
+  PhoneBridge.setupWebRTC(true);
+}
+socket.on('peer-connected', () => { document.getElementById('connBadge').className='badge badge-success'; document.getElementById('connBadge').textContent='Connected'; });
+socket.on('peer-disconnected', () => { document.getElementById('connBadge').className='badge badge-danger'; document.getElementById('connBadge').textContent='Offline'; });
+document.addEventListener('rtt-update', e => {
+  const rtt = document.getElementById('rttVal');
+  if (rtt) rtt.textContent=e.detail;
+});
+socket.on('theme-change', d => ThemeManager.apply(d.theme, false));
+
+buildPhoneNav('keyboard-builder');
+
+Guide.init([
+  { icon: '◇', title: 'Custom Keyboard Builder', description: 'Design your own keyboard layout with custom keys. Drag keys to reposition, configure actions, colors, and shapes.' },
+  { icon: '+', title: 'Adding Keys', description: 'Tap <b>+ Add Key</b> to create a new button. Set its label, action type (single key, combo, text, macro, or mouse click), size, color, and shape.' },
+  { icon: 'A', title: 'Action Types', description: '<b>Single Key</b> — sends one key<br><b>Modifier+Key</b> — combo like Ctrl+C<br><b>Text</b> — types a string<br><b>Macro</b> — sequence of keys<br><b>Mouse</b> — click', tip: 'For macros, separate keys with commas: KeyA, KeyB, Enter' },
+  { icon: '▶', title: 'Test Mode', description: 'Switch to <b>Test</b> mode to try your keys — tapping sends the configured action to the laptop. Switch back to <b>Edit</b> to rearrange.' },
+  { icon: 'S', title: 'Save & Share', description: '<b>Save</b> stores to your phone. <b>Export</b> downloads JSON. <b>Import</b> loads a JSON layout. Layouts persist across sessions.' }
+]);
+
+/* ── State ──────────────────────────────────────────────── */
+let keys = [];
+let selectedId = null;
+let editingId = null;
+let mode = 'edit'; // 'edit' or 'test'
+let layoutHistory = [];
+let layoutRedoStack = [];
+let chosenShape = 'square';
+let nextId = 1;
+
+/* ── Load from localStorage ─────────────────────────────── */
+const saved = localStorage.getItem('pb-custom-kb');
+if (saved) { try { keys = JSON.parse(saved); nextId = Math.max(...keys.map(k=>k.id||0), 0) + 1; } catch(e){} }
+
+/* ── Render ─────────────────────────────────────────────── */
+function render() {
+  const area = document.getElementById('builderArea');
+  area.innerHTML = '';
+  keys.forEach(k => {
+    const el = document.createElement('div');
+    el.className = 'custom-key' + (k.id === selectedId ? ' selected' : '') + (mode === 'test' ? ' testing' : '');
+    el.dataset.id = k.id;
+    el.style.left = k.x + '%';
+    el.style.top = k.y + '%';
+    el.style.width = k.w + 'px';
+    el.style.height = k.h + 'px';
+    el.style.backgroundColor = k.bg;
+    el.style.color = k.fg;
+    el.style.fontSize = Math.max(10, Math.min(k.w, k.h) * 0.3) + 'px';
+
+    // Shape styling
+    if (k.shape === 'pill') el.style.borderRadius = Math.min(k.w,k.h)/2 + 'px';
+    else if (k.shape === 'circle') el.style.borderRadius = '50%';
+    else if (k.shape === 'cut') el.style.borderRadius = '12px 0 12px 0';
+    else if (k.shape === 'hex') { el.style.borderRadius = '8px'; el.style.clipPath = 'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)'; }
+    else el.style.borderRadius = '8px';
+
+    el.textContent = k.label;
+
+    if (mode === 'edit') {
+      el.addEventListener('pointerdown', e => startDrag(e, k));
+      el.addEventListener('click', () => selectKey(k.id));
+    } else {
+      // Test mode
+      el.addEventListener('touchstart', e => { e.preventDefault(); testKeyDown(k); }, {passive:false});
+      el.addEventListener('touchend', e => { e.preventDefault(); testKeyUp(k); }, {passive:false});
+    }
+    area.appendChild(el);
+  });
+  document.getElementById('keyCount').textContent = `Keys: ${keys.length}`;
+  // Sync to laptop
+  socket.emit('custom-kb-layout', { keys });
+}
+
+/* ── Dragging ───────────────────────────────────────────── */
+let dragKey = null, dragOffX = 0, dragOffY = 0;
+function startDrag(e, k) {
+  if (mode !== 'edit') return;
+  e.preventDefault();
+  saveHistory();
+  dragKey = k;
+  const area = document.getElementById('builderArea');
+  const rect = area.getBoundingClientRect();
+  const cx = (e.clientX || e.touches?.[0]?.clientX) - rect.left;
+  const cy = (e.clientY || e.touches?.[0]?.clientY) - rect.top;
+  dragOffX = cx - (k.x / 100 * rect.width);
+  dragOffY = cy - (k.y / 100 * rect.height);
+
+  const move = ev => {
+    const mx = (ev.clientX || ev.touches?.[0]?.clientX) - rect.left - dragOffX;
+    const my = (ev.clientY || ev.touches?.[0]?.clientY) - rect.top - dragOffY;
+    k.x = Math.max(0, Math.min(100 - k.w/rect.width*100, mx / rect.width * 100));
+    k.y = Math.max(0, Math.min(100 - k.h/rect.height*100, my / rect.height * 100));
+    render();
+  };
+  const up = () => {
+    document.removeEventListener('pointermove', move);
+    document.removeEventListener('pointerup', up);
+    dragKey = null;
+  };
+  document.addEventListener('pointermove', move);
+  document.addEventListener('pointerup', up);
+}
+
+/* ── Selection ──────────────────────────────────────────── */
+function selectKey(id) {
+  selectedId = selectedId === id ? null : id;
+  render();
+}
+
+/* ── Test Mode ──────────────────────────────────────────── */
+let repeatInterval = null;
+function testKeyDown(k) {
+  haptic('medium');
+  fireKey(k);
+  if (k.repeat) {
+    repeatInterval = setInterval(() => fireKey(k), 100);
+  }
+}
+function testKeyUp(k) {
+  if (repeatInterval) { clearInterval(repeatInterval); repeatInterval = null; }
+}
+function fireKey(k) {
+  if (k.action === 'key') PhoneBridge.sendKey(k.value);
+  else if (k.action === 'combo') PhoneBridge.sendKey(k.value, k.mods || []);
+  else if (k.action === 'text') PhoneBridge.sendText(k.value);
+  else if (k.action === 'macro') {
+    (k.value || '').split(',').forEach((key, i) => {
+      setTimeout(() => PhoneBridge.sendKey(key.trim()), i * 50);
+    });
+  }
+  else if (k.action === 'mouse') PhoneBridge.sendMouseClick(k.value || 'left');
+}
+
+/* ── Mode Switch ────────────────────────────────────────── */
+function setMode(m) {
+  mode = m;
+  document.getElementById('mEdit').classList.toggle('active', m === 'edit');
+  document.getElementById('mTest').classList.toggle('active', m === 'test');
+  selectedId = null;
+  render();
+}
+
+/* ── Modal ──────────────────────────────────────────────── */
+function openAddModal() {
+  editingId = null;
+  document.getElementById('modalTitle').textContent = 'Add Key';
+  document.getElementById('kLabel').value = '';
+  document.getElementById('kAction').value = 'key';
+  document.getElementById('kValue').value = '';
+  document.getElementById('kMods').value = '';
+  document.getElementById('kWidth').value = 60;
+  document.getElementById('kHeight').value = 60;
+  document.getElementById('kBg').value = '#6c5ce7';
+  document.getElementById('kFg').value = '#ffffff';
+  document.getElementById('kHold').checked = false;
+  document.getElementById('kRepeat').checked = false;
+  chosenShape = 'square';
+  updateShapePicker();
+  document.getElementById('keyModal').classList.remove('hidden');
+}
+
+function editSelected() {
+  if (!selectedId) { Toast.show('Select a key first', 'info'); return; }
+  const k = keys.find(k => k.id === selectedId);
+  if (!k) return;
+  editingId = k.id;
+  document.getElementById('modalTitle').textContent = 'Edit Key';
+  document.getElementById('kLabel').value = k.label;
+  document.getElementById('kAction').value = k.action;
+  document.getElementById('kValue').value = k.value || '';
+  document.getElementById('kMods').value = (k.mods || []).join(', ');
+  document.getElementById('kWidth').value = k.w;
+  document.getElementById('kHeight').value = k.h;
+  document.getElementById('kBg').value = k.bg;
+  document.getElementById('kFg').value = k.fg;
+  document.getElementById('kHold').checked = k.hold || false;
+  document.getElementById('kRepeat').checked = k.repeat || false;
+  chosenShape = k.shape || 'square';
+  updateShapePicker();
+  document.getElementById('keyModal').classList.remove('hidden');
+}
+
+function closeModal() { document.getElementById('keyModal').classList.add('hidden'); }
+
+function pickShape(el) {
+  chosenShape = el.dataset.shape;
+  updateShapePicker();
+}
+function updateShapePicker() {
+  document.querySelectorAll('.shape-opt').forEach(s => s.classList.toggle('active', s.dataset.shape === chosenShape));
+}
+
+function saveKey() {
+  saveHistory();
+  const data = {
+    label: document.getElementById('kLabel').value || '?',
+    action: document.getElementById('kAction').value,
+    value: document.getElementById('kValue').value,
+    mods: document.getElementById('kMods').value.split(',').map(s=>s.trim()).filter(Boolean),
+    w: parseInt(document.getElementById('kWidth').value) || 60,
+    h: parseInt(document.getElementById('kHeight').value) || 60,
+    bg: document.getElementById('kBg').value,
+    fg: document.getElementById('kFg').value,
+    shape: chosenShape,
+    hold: document.getElementById('kHold').checked,
+    repeat: document.getElementById('kRepeat').checked
+  };
+
+  if (editingId) {
+    const k = keys.find(k => k.id === editingId);
+    if (k) Object.assign(k, data);
+  } else {
+    data.id = nextId++;
+    data.x = 5 + Math.random() * 40;
+    data.y = 5 + Math.random() * 40;
+    keys.push(data);
+  }
+  closeModal();
+  render();
+}
+
+function deleteSelected() {
+  if (!selectedId) return;
+  saveHistory();
+  keys = keys.filter(k => k.id !== selectedId);
+  selectedId = null;
+  render();
+}
+
+function clearAll() {
+  if (!confirm('Remove all keys?')) return;
+  saveHistory();
+  keys = [];
+  selectedId = null;
+  render();
+}
+
+/* ── Undo / Redo ────────────────────────────────────────── */
+function saveHistory() { layoutHistory.push(JSON.stringify(keys)); layoutRedoStack = []; if(layoutHistory.length>30) layoutHistory.shift(); }
+function undoLayout() { if(!layoutHistory.length) return; layoutRedoStack.push(JSON.stringify(keys)); keys=JSON.parse(layoutHistory.pop()); render(); }
+function redoLayout() { if(!layoutRedoStack.length) return; layoutHistory.push(JSON.stringify(keys)); keys=JSON.parse(layoutRedoStack.pop()); render(); }
+
+/* ── Import / Export / Save ─────────────────────────────── */
+function exportJSON() {
+  const blob = new Blob([JSON.stringify(keys, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.download = 'custom-keyboard.json';
+  a.href = URL.createObjectURL(blob);
+  a.click();
+  Toast.show('Exported!', 'success');
+}
+
+function importJSON(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      saveHistory();
+      keys = JSON.parse(ev.target.result);
+      nextId = Math.max(...keys.map(k=>k.id||0), 0) + 1;
+      render();
+      Toast.show('Imported!', 'success');
+    } catch(err) { Toast.show('Invalid JSON', 'error'); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+function saveLocal() {
+  localStorage.setItem('pb-custom-kb', JSON.stringify(keys));
+  Toast.show('Saved to device', 'success');
+}
+
+/* ── Init ───────────────────────────────────────────────── */
+render();
+</script>
+</body>
+</html>

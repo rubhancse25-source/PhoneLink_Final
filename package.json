@@ -1,0 +1,21 @@
+{
+  "name": "phone-bridge",
+  "version": "1.0.0",
+  "description": "PhoneLink – Multi-mode remote control suite for education, presentations, and productivity",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.7.4",
+    "qrcode": "^1.5.3"
+  },
+  "optionalDependencies": {
+    "@nut-tree-fork/nut-js": "^4.2.0"
+  },
+  "keywords": ["remote-control", "presentation", "whiteboard", "keyboard", "webrtc"],
+  "author": "PhoneLink",
+  "license": "MIT"
+}

@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark-galaxy">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>PhoneLink – Presentation Remote</title>
+<link rel="stylesheet" href="common.css">
+<style>
+  .pres-controls{display:flex;flex-direction:column;gap:.8rem;flex:1;justify-content:center}
+  .nav-row{display:grid;grid-template-columns:1fr 1fr;gap:.8rem}
+  .nav-btn{min-height:80px;font-size:1.3rem;font-weight:700;border-radius:var(--radius);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.3rem}
+  .nav-btn .icon{font-size:2rem}
+  .nav-btn .label{font-size:.7rem;font-weight:500;opacity:.7;text-transform:uppercase;letter-spacing:.05em}
+  .util-row{display:grid;grid-template-columns:repeat(2,1fr);gap:.6rem}
+  .timer-display{text-align:center;padding:1.2rem;border-radius:var(--radius)}
+  .timer-display .time{font-size:2.8rem;font-weight:800;font-family:'JetBrains Mono',monospace;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+  .timer-display .label{font-size:.7rem;color:var(--text-muted);margin-top:.2rem}
+  .laser-zone{width:100%;aspect-ratio:4/3;max-height:52vh;border-radius:var(--radius);background:var(--bg-glass);border:1px solid var(--border-glass);touch-action:none;position:relative;overflow:hidden}
+  .laser-zone::after{content:'Drag to move • two fingers swipe to scroll';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--text-muted);font-size:.76rem;pointer-events:none;text-align:center;max-width:72%}
+  .mouse-btns{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+  .mouse-btn{min-height:46px;font-size:0}
+  .mouse-btn::after{content:'';width:8px;height:8px;border-radius:50%;background:currentColor;opacity:.65}
+  .mode-switch{display:flex;gap:.3rem;padding:.3rem;background:var(--bg-glass);border-radius:var(--radius-sm);border:1px solid var(--border-glass)}
+  .mode-switch button{flex:1;padding:.5rem;border-radius:var(--radius-xs);font-size:.8rem;font-weight:600;color:var(--text-secondary);background:transparent;transition:all .2s}
+  .mode-switch button.active{background:var(--accent);color:#fff}
+</style>
+</head>
+<body>
+<div class="phone-layout">
+  <header class="phone-header">
+    <div style="display:flex;align-items:center;gap:.5rem">
+      <span style="font-size:1.2rem">▭</span>
+      <span style="font-weight:700;font-size:.95rem">Presentation</span>
+    </div>
+    <div class="flex items-center gap-sm">
+      <span id="connBadge" class="badge badge-danger">Offline</span>
+    </div>
+  </header>
+
+  <div class="phone-body">
+    <!-- Mode toggle -->
+    <div class="mode-switch animate-fade">
+      <button class="active" id="btnControls" onclick="showView('controls')">Controls</button>
+      <button id="btnLaser" onclick="showView('laser')">Mousepad</button>
+    </div>
+
+    <!-- Controls View -->
+    <div id="viewControls" class="pres-controls animate-slide">
+      <div class="glass timer-display">
+        <div class="time" id="timerText">00:00</div>
+        <div class="label">Elapsed Time</div>
+        <div class="flex justify-center gap-sm" style="margin-top:.6rem">
+          <button class="btn btn-sm" id="timerToggle" onclick="toggleTimer()">Start</button>
+          <button class="btn btn-sm" onclick="resetTimer()">↻ Reset</button>
+        </div>
+      </div>
+
+      <div class="nav-row">
+        <button class="btn nav-btn" onclick="pressSendKey('ArrowLeft')" id="btnPrev">
+          <span class="icon">◀</span><span class="label">Previous</span>
+        </button>
+        <button class="btn nav-btn btn-primary" onclick="pressSendKey('ArrowRight')" id="btnNext">
+          <span class="icon">▶</span><span class="label">Next</span>
+        </button>
+      </div>
+
+      <div class="util-row">
+        <button class="btn" onclick="pressSendKey('Escape')" id="btnEsc">
+          <span>✕</span> Esc
+        </button>
+        <button class="btn" onclick="pressSendKey('Space')" id="btnSpace">
+          <span>⎵</span> Space
+        </button>
+      </div>
+    </div>
+
+    <!-- Laser View -->
+    <div id="viewLaser" class="hidden" style="flex:1;display:flex;flex-direction:column;gap:.8rem">
+      <div class="laser-zone" id="laserZone"></div>
+      <div class="mouse-btns">
+        <button class="btn mouse-btn" onclick="pClick('left')" aria-label="Left click"></button>
+        <button class="btn mouse-btn" onclick="pClick('right')" aria-label="Right click"></button>
+      </div>
+      <p style="text-align:center;font-size:.75rem;color:var(--text-muted)">Use this like a mousepad while presenting.</p>
+    </div>
+  </div>
+
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="common.js"></script>
+<script>
+/* ── State ──────────────────────────────────────────────── */
+let timerRunning = false, timerSeconds = 0, timerInterval = null;
+let laserInited = false;
+
+/* ── Init ───────────────────────────────────────────────── */
+const sessionId = PhoneBridge.getSessionFromURL();
+if (sessionId) {
+  PhoneBridge.joinAsPhone(sessionId);
+  PhoneBridge.setupWebRTC(true);
+} else {
+  Toast.show('No session ID in URL', 'error');
+}
+
+/* ── Phone Nav ──────────────────────────────────────────── */
+buildPhoneNav('presentation');
+
+/* ── Guide ──────────────────────────────────────────────── */
+Guide.init([
+  { icon: '▭', title: 'Presentation Remote', description: 'Control your slides wirelessly from your phone. Tap Next/Previous to navigate through slides.', tip: 'Works with PowerPoint, Keynote, Google Slides, and any app using arrow keys.' },
+  { icon: 'T', title: 'Timer', description: 'Track your presentation time with the built-in stopwatch. Start, pause, and reset as needed.' },
+  { icon: 'M', title: 'Mousepad', description: 'Switch to Mousepad mode to control the pointer just like the Keyboard & Mouse trackpad.', tip: 'Drag to move, tap to click, and use two fingers to scroll.' },
+  { icon: '⌗', title: 'Utility Keys', description: '<b>Esc</b> — exit presentation/fullscreen<br><b>Space</b> — advance slide or play animation' },
+  { icon: 'PL', title: 'Switch Modes', description: 'Use the bottom navigation bar to switch between all 5 modes: Presentation, Media, Keyboard, Whiteboard, and Custom Keys — without losing your session.' }
+]);
+
+/* ── Connection status ──────────────────────────────────── */
+socket.on('peer-connected', () => {
+  document.getElementById('connBadge').className = 'badge badge-success';
+  document.getElementById('connBadge').textContent = 'Connected';
+  Toast.show('Connected to laptop!', 'success');
+});
+socket.on('peer-disconnected', () => {
+  document.getElementById('connBadge').className = 'badge badge-danger';
+  document.getElementById('connBadge').textContent = 'Offline';
+});
+document.addEventListener('rtt-update', e => {
+  const rtt = document.getElementById('rttVal');
+  if (rtt) rtt.textContent = e.detail;
+});
+
+/* ── Theme sync ─────────────────────────────────────────── */
+socket.on('theme-change', d => ThemeManager.apply(d.theme, false));
+
+/* ── Key sending (fixed – no reliance on implicit 'event') ── */
+function pressSendKey(key) {
+  haptic('medium');
+  PhoneBridge.sendKey(key);
+}
+
+/* ── Timer ──────────────────────────────────────────────── */
+function toggleTimer() {
+  timerRunning = !timerRunning;
+  const btn = document.getElementById('timerToggle');
+  if (timerRunning) {
+    btn.textContent = 'Pause';
+    timerInterval = setInterval(() => {
+      timerSeconds++;
+      document.getElementById('timerText').textContent = formatTime(timerSeconds);
+    }, 1000);
+  } else {
+    btn.textContent = 'Start';
+    clearInterval(timerInterval);
+  }
+}
+function resetTimer() {
+  timerRunning = false;
+  timerSeconds = 0;
+  clearInterval(timerInterval);
+  document.getElementById('timerText').textContent = '00:00';
+  document.getElementById('timerToggle').textContent = 'Start';
+}
+
+/* ── View switching ─────────────────────────────────────── */
+function showView(view) {
+  document.getElementById('viewControls').classList.toggle('hidden', view !== 'controls');
+  document.getElementById('viewLaser').classList.toggle('hidden', view !== 'laser');
+  document.getElementById('btnControls').classList.toggle('active', view === 'controls');
+  document.getElementById('btnLaser').classList.toggle('active', view === 'laser');
+  if (view === 'laser' && !laserInited) initLaser();
+  if (view !== 'laser') PhoneBridge.sendLaserPointer({ active: false });
+}
+
+/* ── Presentation Mousepad ──────────────────────────────── */
+const sendMove = throttle((dx, dy) => PhoneBridge.sendMouseMove(dx, dy), 16);
+
+function initLaser() {
+  laserInited = true;
+  const zone = document.getElementById('laserZone');
+  let lastX = 0, lastY = 0, touching = false, fingers = 0;
+  let tapStart = 0, tapMoved = false;
+
+  zone.addEventListener('touchstart', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    fingers = e.touches.length;
+    const t = e.touches[0];
+    lastX = t.clientX;
+    lastY = t.clientY;
+    touching = true;
+    tapStart = Date.now();
+    tapMoved = false;
+  }, { passive: false });
+
+  zone.addEventListener('touchmove', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!touching) return;
+    tapMoved = true;
+    const t = e.touches[0];
+    const speed = getControlSpeed('presentation');
+    const dx = (t.clientX - lastX) * speed;
+    const dy = (t.clientY - lastY) * speed;
+    lastX = t.clientX;
+    lastY = t.clientY;
+    if (fingers >= 2) PhoneBridge.sendMouseScroll(0, Math.max(-18, Math.min(18, -dy * 1.8)));
+    else sendMove(dx, dy);
+  }, { passive: false });
+
+  zone.addEventListener('touchend', function(e) {
+    e.preventDefault();
+    const duration = Date.now() - tapStart;
+    if (!tapMoved && duration < 300) {
+      if (fingers === 2) pClick('right');
+      else pClick('left');
+    }
+    touching = false;
+    fingers = 0;
+  }, { passive: false });
+
+  let mouseDown = false;
+  zone.addEventListener('mousedown', function(e) {
+    mouseDown = true;
+    lastX = e.clientX;
+    lastY = e.clientY;
+  });
+  zone.addEventListener('mousemove', function(e) {
+    if (!mouseDown) return;
+    const speed = getControlSpeed('presentation');
+    const dx = (e.clientX - lastX) * speed;
+    const dy = (e.clientY - lastY) * speed;
+    lastX = e.clientX;
+    lastY = e.clientY;
+    sendMove(dx, dy);
+  });
+  zone.addEventListener('mouseup', function() {
+    mouseDown = false;
+  });
+  zone.addEventListener('mouseleave', function() {
+    if (!mouseDown) return;
+    mouseDown = false;
+  });
+}
+
+function pClick(btn) {
+  haptic('medium');
+  PhoneBridge.sendMouseClick(btn);
+}
+</script>
+</body>
+</html>

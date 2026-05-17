@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark-galaxy">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>PhoneLink – Whiteboard</title>
+<link rel="stylesheet" href="common.css">
+<style>
+/* ── Layout ─────────────────────────────────────────────── */
+*,*::before,*::after{
+  box-sizing:border-box;
+  -webkit-tap-highlight-color:transparent;
+  -webkit-touch-callout:none;
+}
+html,body{
+  height:100%;
+  overflow:hidden;
+  overscroll-behavior:none;
+  touch-action:none;
+  position:fixed;width:100%;
+}
+
+.wb-layout{
+  display:flex;flex-direction:column;
+  height:100vh;height:100dvh;
+  background:#f8f9fc;
+  position:relative;overflow:hidden;
+}
+
+/* ── Top toolbar ─────────────────────────────────────────── */
+.wb-topbar{
+  display:flex;align-items:center;gap:4px;
+  padding:6px 8px;
+  background:#fff;
+  border-bottom:1px solid rgba(0,0,0,.08);
+  box-shadow:0 1px 6px rgba(0,0,0,.06);
+  z-index:100;flex-shrink:0;
+  overflow-x:auto;
+  scrollbar-width:none;
+}
+.wb-topbar::-webkit-scrollbar{display:none}
+
+/* ── Tool button ─────────────────────────────────────────── */
+.tb{
+  display:flex;align-items:center;justify-content:center;
+  width:38px;height:38px;flex-shrink:0;
+  border:1.5px solid transparent;
+  border-radius:8px;
+  background:transparent;
+  color:#374151;
+  font-size:15px;cursor:pointer;
+  transition:all .12s;
+  position:relative;
+}
+.tb:active{transform:scale(.92)}
+.tb.active{
+  background:#6366f1;color:#fff;
+  border-color:#6366f1;
+  box-shadow:0 2px 8px rgba(99,102,241,.35);
+}
+.tb:not(.active):hover{background:#f3f4f6;border-color:#e5e7eb}
+
+.tb-sep{width:1px;height:26px;background:#e5e7eb;flex-shrink:0;margin:0 2px}
+
+/* ── Color/size controls ─────────────────────────────────── */
+.tb-color{
+  width:30px;height:30px;border-radius:50%;
+  border:2px solid #e5e7eb;cursor:pointer;
+  padding:0;overflow:hidden;flex-shrink:0;
+  -webkit-appearance:none;
+  background:transparent;
+}
+.tb-color::-webkit-color-swatch-wrapper{padding:2px}
+.tb-color::-webkit-color-swatch{border-radius:50%;border:none}
+
+.tb-size{
+  width:80px;height:4px;accent-color:#6366f1;
+  cursor:pointer;flex-shrink:0;
+}
+
+.tb-select{
+  border:1.5px solid #e5e7eb;border-radius:6px;
+  background:#fff;color:#374151;
+  font-size:11px;padding:2px 4px;
+  cursor:pointer;height:30px;
+}
+
+/* ── Canvas area ─────────────────────────────────────────── */
+.wb-canvas-wrap{
+  flex:1;position:relative;overflow:hidden;
+  touch-action:none;
+  overscroll-behavior:none;
+  -webkit-user-select:none;user-select:none;
+  border:1px solid #111;
+  box-shadow:inset 0 0 0 1px #111;
+}
+.wb-canvas-wrap canvas{
+  position:absolute;inset:0;
+  width:100%;height:100%;
+  touch-action:none;
+  overscroll-behavior:none;
+  -webkit-user-select:none;user-select:none;
+  display:block;
+}
+
+/* ── Bottom toolbar ──────────────────────────────────────── */
+.wb-bottombar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:6px 10px;
+  background:#fff;
+  border-top:1px solid rgba(0,0,0,.08);
+  box-shadow:0 -1px 6px rgba(0,0,0,.05);
+  z-index:100;flex-shrink:0;
+  gap:4px;
+}
+.wb-zoom-label{
+  font-size:11px;font-weight:600;color:#6b7280;
+  font-family:'JetBrains Mono',monospace;
+  min-width:46px;text-align:center;
+}
+.wb-conn{
+  display:flex;align-items:center;gap:5px;
+  font-size:11px;font-weight:600;
+}
+.wb-conn-dot{
+  width:7px;height:7px;border-radius:50%;
+  background:#ef4444;
+  transition:background .3s;
+}
+.wb-conn-dot.online{background:#22c55e;animation:pulse 2s infinite}
+
+/* ── Connection overlay ──────────────────────────────────── */
+.wb-offline-overlay{
+  position:absolute;inset:0;z-index:200;
+  background:rgba(255,255,255,.7);
+  backdrop-filter:blur(6px);
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  gap:8px;
+}
+.wb-offline-overlay.hidden{display:none}
+.wb-offline-overlay p{color:#374151;font-weight:600;font-size:.95rem}
+
+/* ── Brush preview dot ───────────────────────────────────── */
+.wb-brush-preview{
+  position:absolute;bottom:56px;right:12px;
+  width:24px;height:24px;
+  border-radius:50%;
+  pointer-events:none;z-index:50;
+  border:2px solid rgba(0,0,0,.15);
+  transition:all .15s;
+}
+
+/* ── Tool label toast ────────────────────────────────────── */
+.wb-tool-toast{
+  position:absolute;bottom:64px;left:50%;transform:translateX(-50%);
+  background:rgba(17,24,39,.85);color:#fff;
+  font-size:12px;font-weight:600;
+  padding:4px 12px;border-radius:20px;
+  pointer-events:none;z-index:50;
+  opacity:0;transition:opacity .2s;
+  white-space:nowrap;
+}
+.wb-tool-toast.show{opacity:1}
+.wb-stylus-hint{
+  position:absolute;top:10px;left:50%;transform:translateX(-50%);
+  z-index:55;pointer-events:none;
+  padding:5px 12px;border-radius:999px;
+  background:rgba(17,24,39,.82);color:#fff;
+  font-size:11px;font-weight:700;letter-spacing:.01em;
+  box-shadow:0 8px 24px rgba(0,0,0,.16);
+  animation:fadeIn .25s ease both;
+}
+
+/* ── Cursor indicator for touch ──────────────────────────── */
+.wb-touch-cursor{
+  position:absolute;border-radius:50%;
+  pointer-events:none;z-index:60;
+  transform:translate(-50%,-50%);
+  border:2px solid currentColor;
+  transition:width .1s,height .1s,opacity .15s;
+  opacity:0;
+}
+.wb-touch-cursor.active{opacity:.7}
+</style>
+</head>
+<body>
+<div class="wb-layout" id="wbRoot">
+
+  <!-- Top toolbar -->
+  <div class="wb-topbar" id="wbTopbar">
+    <!-- Drawing tools -->
+    <button class="tb active" data-wb-tool="pen"      title="Pen (P)">P</button>
+    <button class="tb"        data-wb-tool="eraser"   title="Eraser (E)">E</button>
+    <div class="tb-sep"></div>
+    <button class="tb"        data-wb-tool="rect"     title="Rectangle (R)">▭</button>
+    <button class="tb"        data-wb-tool="diamond"  title="Diamond (D)">◇</button>
+    <button class="tb"        data-wb-tool="ellipse"  title="Ellipse (O)">◯</button>
+    <button class="tb"        data-wb-tool="line"     title="Line (L)">╱</button>
+    <button class="tb"        data-wb-tool="arrow"    title="Arrow (A)">→</button>
+    <button class="tb"        data-wb-tool="text"     title="Text (T)">T</button>
+    <div class="tb-sep"></div>
+    <button class="tb"        data-wb-tool="hand"     title="Pan (H)">H</button>
+    <div class="tb-sep"></div>
+    <!-- Fill -->
+    <select class="tb-select" data-wb-fill title="Fill">
+      <option value="none">No fill</option>
+      <option value="solid">Solid fill</option>
+    </select>
+    <!-- Color -->
+    <input type="color" class="tb-color" data-wb-color value="#1e1e2e" title="Color">
+    <!-- Size -->
+    <input type="range" class="tb-size" data-wb-size min="1" max="20" value="3" title="Size">
+    <div class="tb-sep"></div>
+    <!-- Actions -->
+    <button class="tb" data-wb-undo  title="Undo (Ctrl+Z)">↩</button>
+    <button class="tb" data-wb-redo  title="Redo">↪</button>
+    <button class="tb" data-wb-clear title="Clear all" style="color:#ef4444">×</button>
+    <button class="tb" data-wb-export title="Export PNG" style="color:#22c55e">⬇</button>
+    <button class="tb" data-wb-reset title="Reset view">⊕</button>
+  </div>
+
+  <!-- Canvas -->
+  <div class="wb-canvas-wrap" id="wbCanvasWrap">
+    <canvas id="wbCanvas"></canvas>
+    <div class="wb-stylus-hint">Use a smart pen or stylus for a better drawing experience.</div>
+    <!-- Tool toast sits above canvas but pointer-events:none so it doesn't block drawing -->
+    <div class="wb-tool-toast" id="wbToolToast" style="pointer-events:none"></div>
+
+    <!-- Offline overlay — pointer-events:none so drawing still works underneath -->
+    <div class="wb-offline-overlay" id="wbOffline" style="pointer-events:none">
+      <div style="font-size:2.5rem">◇</div>
+      <p>Waiting for laptop connection…</p>
+      <p style="font-size:.8rem;color:#6b7280">Open the PhoneLink dashboard on your laptop first</p>
+    </div>
+  </div>
+
+  <!-- Bottom bar -->
+  <div class="wb-bottombar">
+    <div class="wb-conn">
+      <div class="wb-conn-dot" id="wbConnDot"></div>
+      <span id="wbConnLabel">Offline</span>
+    </div>
+    <span class="wb-zoom-label" data-wb-zoom>100%</span>
+    <div style="display:flex;gap:4px">
+      <button class="tb" style="width:30px;height:30px;font-size:13px" onclick="wb?.resetView()">↺</button>
+    </div>
+  </div>
+
+  <!-- Brush size preview -->
+  <div class="wb-brush-preview" id="wbBrushPreview"></div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="common.js"></script>
+<script src="whiteboard-core.js"></script>
+<script>
+/* ═══════════════════════════════════════════════════════════
+   PhoneLink Whiteboard – Phone Controller
+   Architecture:
+     1. All strokes drawn instantly LOCAL (zero perceived lag).
+     2. Sync via WebRTC DataChannel when available (<1ms on LAN).
+     3. Fallback to Socket.io wb-event if RTC not ready.
+     4. Delta-only live sync – only new points sent per frame.
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Session ── */
+const sessionId = PhoneBridge.getSessionFromURL();
+let wb = null;
+let isConnected = false;
+
+if (sessionId) {
+  PhoneBridge.joinAsPhone(sessionId);
+  PhoneBridge.setupWebRTC(true);
+}
+
+buildPhoneNav('whiteboard');
+
+/* ── Init whiteboard after DOM ready ── */
+function initWhiteboard() {
+  wb = PhoneLinkWhiteboard.create({
+    canvas: document.getElementById('wbCanvas'),
+    root:   document.getElementById('wbRoot'),
+    send:   sendEvent,
+  });
+  updateBrushPreview();
+}
+
+/* ── Send event: always try – local draw already happened ── */
+function sendEvent(event) {
+  // Never gate on isConnected — local canvas already updated.
+  // Try RTC DataChannel (sub-1ms), fallback to Socket.io.
+  const json = JSON.stringify({ type: 'wb', event });
+  if (!PhoneBridge.sendRTC(json)) {
+    socket.emit('wb-event', event);
+  }
+}
+
+/* ── Receive events from peer (laptop) ── */
+document.addEventListener('datachannel-message', e => {
+  try {
+    const d = JSON.parse(e.detail);
+    if (d.type === 'wb') wb?.receive(d.event);
+  } catch (_) {}
+});
+socket.on('wb-event', event => wb?.receive(event));
+
+/* ── Connection status ── */
+function setConnected(v) {
+  isConnected = v;
+  document.getElementById('wbConnDot').classList.toggle('online', v);
+  document.getElementById('wbConnLabel').textContent = v ? 'Connected' : 'Offline';
+  document.getElementById('wbOffline').classList.toggle('hidden', v);
+}
+socket.on('peer-connected',    () => setConnected(true));
+socket.on('peer-disconnected', () => setConnected(false));
+document.addEventListener('datachannel-open',  () => setConnected(true));
+document.addEventListener('datachannel-close', () => setConnected(false));
+
+/* ── Brush preview updater ── */
+function updateBrushPreview() {
+  const preview = document.getElementById('wbBrushPreview');
+  const colorEl = document.querySelector('[data-wb-color]');
+  const sizeEl  = document.querySelector('[data-wb-size]');
+  if (!preview || !colorEl || !sizeEl) return;
+  const color = colorEl.value;
+  const size  = parseInt(sizeEl.value) * 2;
+  preview.style.width  = size + 'px';
+  preview.style.height = size + 'px';
+  preview.style.background = color;
+}
+document.querySelector('[data-wb-color]')?.addEventListener('input', updateBrushPreview);
+document.querySelector('[data-wb-size]')?.addEventListener('input', updateBrushPreview);
+
+/* ── Tool toast notification ── */
+function showToolToast(name) {
+  const t = document.getElementById('wbToolToast');
+  t.textContent = name;
+  t.classList.add('show');
+  clearTimeout(t._to);
+  t._to = setTimeout(() => t.classList.remove('show'), 1200);
+  haptic('light');
+}
+document.querySelectorAll('[data-wb-tool]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const names = { pen:'Pen', eraser:'Eraser', rect:'Rectangle',
+      diamond:'Diamond', ellipse:'Ellipse', line:'Line',
+      arrow:'Arrow', text:'Text', hand:'Pan' };
+    showToolToast(names[btn.dataset.wbTool] || btn.dataset.wbTool);
+    updateBrushPreview();
+  });
+});
+
+/* ── Touch cursor removed: overlay divs can steal pointer events on some mobile browsers ── */
+
+/* ── Clear confirmation ── */
+document.querySelector('[data-wb-clear]')?.addEventListener('click', e => {
+  e.stopImmediatePropagation();
+  if (!confirm('Clear the entire whiteboard?')) return;
+  wb?.clear();
+  haptic('medium');
+});
+
+/* ── Theme ── */
+socket.on('theme-change', d => ThemeManager.apply(d.theme, false));
+
+/* ── Guide ── */
+Guide.init([
+  { icon: '□', title: 'Whiteboard', description: 'Draw on your phone and see it appear instantly on the laptop over the local network.' },
+  { icon: 'P', title: 'Drawing Tools', description: '<b>Pen</b> — freehand smooth strokes<br><b>Shapes</b> — rect, ellipse, diamond, line, arrow<br><b>Text</b> — tap to place inline text<br><b>Eraser</b> — truly removes strokes and objects' },
+  { icon: '+', title: 'Zoom & Pan', description: '<b>Pinch</b> with two fingers to zoom. <b>Hand tool</b> or two-finger drag to pan. <b>Reset</b> button returns to 100%.' },
+  { icon: '↯', title: 'Low Latency', description: 'All strokes are drawn locally first, then synced over WebRTC on your local network.' },
+  { icon: '↓', title: 'Export & Clear', description: 'Tap the download button to export as PNG. Tap clear to remove the board after confirmation. Undo/redo keeps your drawing history.' },
+]);
+
+/* ── Start ── */
+initWhiteboard();
+</script>
+</body>
+</html>

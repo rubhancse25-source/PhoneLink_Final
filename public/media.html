@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark-galaxy">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>PhoneLink – Media Remote</title>
+<link rel="stylesheet" href="common.css">
+<style>
+  .now-playing-card{text-align:center;padding:1.5rem;border-radius:var(--radius);position:relative;overflow:hidden}
+  .now-playing-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,var(--accent-glow),var(--accent2-glow));opacity:.15;pointer-events:none}
+  .np-icon{font-size:3rem;margin-bottom:.5rem;animation:float 3s ease-in-out infinite}
+  .np-title{font-size:1.3rem;font-weight:700}
+  .np-artist{font-size:.9rem;color:var(--text-secondary);margin-top:.2rem}
+  .play-btn{width:80px;height:80px;border-radius:50%;font-size:2rem;background:var(--accent);color:#fff;border:none;display:flex;align-items:center;justify-content:center;margin:0 auto;box-shadow:0 4px 24px var(--accent-glow);transition:all .2s}
+  .play-btn:active{transform:scale(.9)}
+  .control-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem}
+  .ctrl-btn{min-height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.2rem;border-radius:var(--radius-sm);font-size:.8rem;font-weight:600}
+  .ctrl-btn .icon{font-size:1.4rem}
+  .vol-section{display:flex;align-items:center;gap:1rem;padding:.8rem 0}
+  .vol-section .icon{font-size:1.3rem;flex-shrink:0}
+  .vol-section .slider{flex:1}
+  .seek-row{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
+</style>
+</head>
+<body>
+<div class="phone-layout">
+  <header class="phone-header">
+    <div style="display:flex;align-items:center;gap:.5rem">
+      <span style="font-size:1.2rem">♪</span>
+      <span style="font-weight:700;font-size:.95rem">Media Remote</span>
+    </div>
+    <div class="flex items-center gap-sm">
+      <span id="connBadge" class="badge badge-danger">Offline</span>
+    </div>
+  </header>
+
+  <div class="phone-body">
+    <!-- Now Playing -->
+    <div class="glass now-playing-card animate-fade">
+      <div class="np-icon">♪</div>
+      <div class="np-title" id="npTitle">No Track</div>
+      <div class="np-artist" id="npArtist">--</div>
+    </div>
+
+    <!-- Play / Pause -->
+    <div class="text-center animate-slide delay-1" style="padding:.5rem 0">
+      <button class="play-btn" onclick="sendMedia('MediaPlayPause')" id="playBtn">II</button>
+    </div>
+
+    <!-- Track Controls -->
+    <div class="seek-row animate-slide delay-2">
+      <button class="btn btn-lg" onclick="sendMedia('MediaPrevTrack')">Previous</button>
+      <button class="btn btn-lg" onclick="sendMedia('MediaNextTrack')">Next</button>
+    </div>
+
+    <!-- Seek -->
+    <div class="seek-row animate-slide delay-3">
+      <button class="btn" onclick="seekBack()">-5s</button>
+      <button class="btn" onclick="seekForward()">+5s</button>
+    </div>
+
+    <!-- Volume -->
+    <div class="glass animate-slide delay-4" style="padding:1rem;border-radius:var(--radius)">
+      <div class="label" style="margin-bottom:.4rem">Volume</div>
+      <div class="control-grid">
+        <button class="btn ctrl-btn" onclick="sendMedia('AudioVolumeDown')">
+          <span class="icon">−</span>Vol -
+        </button>
+        <button class="btn ctrl-btn" onclick="sendMedia('AudioVolumeMute')" id="muteBtn">
+          <span class="icon">×</span>Mute
+        </button>
+        <button class="btn ctrl-btn" onclick="sendMedia('AudioVolumeUp')">
+          <span class="icon">+</span>Vol +
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="common.js"></script>
+<script>
+const sessionId = PhoneBridge.getSessionFromURL();
+if (sessionId) {
+  PhoneBridge.joinAsPhone(sessionId);
+  PhoneBridge.setupWebRTC(true);
+} else {
+  Toast.show('No session ID in URL', 'error');
+}
+
+buildPhoneNav('media');
+
+Guide.init([
+  { icon: '♪', title: 'Media Remote', description: 'Control any media player on your laptop — YouTube, Spotify, VLC, Netflix, and more — right from your phone.' },
+  { icon: 'II', title: 'Playback Controls', description: '<b>Play/Pause</b> — toggle playback<br><b>Previous/Next</b> — switch tracks<br><b>Seek ±5s</b> — skip forward or backward' },
+  { icon: '+', title: 'Volume & Mute', description: 'Adjust volume in 5% steps with Vol+/Vol- buttons. Tap Mute to instantly silence audio.', tip: 'These send system-level media keys so they work with any media app.' },
+  { icon: 'NP', title: 'Now Playing', description: 'The laptop can send track info (title & artist) which appears at the top of your remote.' },
+  { icon: 'PL', title: 'Switch Modes', description: 'Use the bottom navigation to switch between all 5 modes without losing your connection.' }
+]);
+
+socket.on('peer-connected', () => {
+  document.getElementById('connBadge').className = 'badge badge-success';
+  document.getElementById('connBadge').textContent = 'Connected';
+  Toast.show('Connected!', 'success');
+});
+socket.on('peer-disconnected', () => {
+  document.getElementById('connBadge').className = 'badge badge-danger';
+  document.getElementById('connBadge').textContent = 'Offline';
+});
+document.addEventListener('rtt-update', e => {
+  const rtt = document.getElementById('rttVal');
+  if (rtt) rtt.textContent = e.detail;
+});
+socket.on('theme-change', d => ThemeManager.apply(d.theme, false));
+
+/* Now Playing updates from laptop */
+socket.on('now-playing', d => {
+  if (d.title) document.getElementById('npTitle').textContent = d.title;
+  if (d.artist) document.getElementById('npArtist').textContent = d.artist;
+});
+
+function sendMedia(key) {
+  haptic('medium');
+  PhoneBridge.sendKey(key);
+}
+
+function seekBack() {
+  haptic('light');
+  PhoneBridge.sendKey('ArrowLeft');
+}
+function seekForward() {
+  haptic('light');
+  PhoneBridge.sendKey('ArrowRight');
+}
+</script>
+</body>
+</html>

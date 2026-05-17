@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark-galaxy">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>PhoneLink – Keyboard & Mouse</title>
+<link rel="stylesheet" href="common.css">
+<style>
+  .view-switch{display:flex;gap:.3rem;padding:.25rem;background:var(--bg-glass);border-radius:var(--radius-sm);border:1px solid var(--border-glass)}
+  .view-switch button{flex:1;padding:.45rem;border-radius:var(--radius-xs);font-size:.8rem;font-weight:600;color:var(--text-secondary);background:transparent;transition:all .2s}
+  .view-switch button.active{background:var(--accent);color:#fff}
+  .os-switch{display:flex;gap:.3rem;padding:.25rem;background:var(--bg-glass);border-radius:var(--radius-sm);border:1px solid var(--border-glass);margin-bottom:.4rem}
+  .os-switch button{flex:1;padding:.38rem;border-radius:var(--radius-xs);font-size:.76rem;font-weight:700;color:var(--text-secondary)}
+  .os-switch button.active{background:var(--accent);color:#061017}
+  /* Keyboard */
+  .kb-container{display:flex;flex-direction:column;gap:.32rem}
+  .kb-row{display:flex;gap:.22rem;justify-content:center;width:100%}
+  .kb-row .kb-key{flex:1 1 0;min-width:0;padding:.4rem .18rem;font-size:.78rem}
+  .kb-key{font-size:.82rem}
+  .kb-key.w15{flex:1.35 1 0;min-width:0}.kb-key.w2{flex:1.7 1 0;min-width:0}.kb-key.w25{flex:2 1 0;min-width:0}
+  .kb-space{flex:1;min-width:160px}
+  .mod-row{display:flex;gap:.3rem;margin-bottom:.3rem}
+  .mod-key{flex:1;font-size:.72rem;min-height:40px;text-transform:uppercase;letter-spacing:.04em}
+  .caps-on{box-shadow:0 0 10px var(--warning);border-color:var(--warning)!important;color:var(--warning)!important}
+  .fn-row{display:flex;gap:.25rem;overflow-x:auto;padding:.2rem 0;-webkit-overflow-scrolling:touch}
+  .fn-key{min-width:44px;height:36px;font-size:.7rem;flex-shrink:0}
+  .arrow-cluster{display:grid;grid-template-columns:repeat(3,48px);grid-template-rows:repeat(2,44px);gap:.25rem;justify-content:center;margin-top:.3rem}
+  .arrow-cluster .up{grid-column:2}
+  .arrow-cluster .left{grid-column:1;grid-row:2}
+  .arrow-cluster .down{grid-column:2;grid-row:2}
+  .arrow-cluster .right{grid-column:3;grid-row:2}
+  .native-input-wrap{position:relative}
+  .native-input{width:100%;padding:.7rem 1rem;border-radius:var(--radius-sm);background:var(--bg-glass);border:1px solid var(--border-glass);color:var(--text-primary);font-size:1rem;caret-color:var(--accent)}
+  .native-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+  /* Mouse/Trackpad */
+  .trackpad-area{width:100%;aspect-ratio:4/3;max-height:52vh;border-radius:var(--radius);background:var(--bg-glass);border:1px solid var(--border-glass);touch-action:none;position:relative}
+  .trackpad-area::after{content:'Drag to move • two fingers swipe to scroll';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--text-muted);font-size:.76rem;pointer-events:none;text-align:center;max-width:72%}
+  .mouse-btns{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+  .mouse-btn{min-height:46px;font-size:0;font-weight:600}
+  .mouse-btn::after{content:'';width:8px;height:8px;border-radius:50%;background:currentColor;opacity:.65}
+</style>
+</head>
+<body>
+<div class="phone-layout">
+  <header class="phone-header">
+    <div style="display:flex;align-items:center;gap:.5rem">
+      <span style="font-size:1.2rem">⌗</span>
+      <span style="font-weight:700;font-size:.95rem">Keyboard & Mouse</span>
+    </div>
+    <div class="flex items-center gap-sm">
+      <span id="connBadge" class="badge badge-danger">Offline</span>
+    </div>
+  </header>
+
+  <div class="phone-body" style="gap:.6rem">
+    <!-- View Switch -->
+    <div class="view-switch">
+      <button class="active" id="vKb" onclick="showView('keyboard')">Keyboard</button>
+      <button id="vMouse" onclick="showView('mouse')">Trackpad</button>
+    </div>
+
+    <!-- KEYBOARD VIEW -->
+    <div id="viewKeyboard">
+      <!-- OS + Layout toggle -->
+      <div class="os-switch">
+        <button class="active" id="osWin" onclick="setKeyboardOS('windows')">Windows</button>
+        <button id="osMac" onclick="setKeyboardOS('mac')">MacBook</button>
+      </div>
+      <div class="view-switch" style="margin-bottom:.4rem">
+        <button class="active" id="lAlpha" onclick="showLayout('alpha')">ABC</button>
+        <button id="lNum" onclick="showLayout('num')">123 #+=</button>
+        <button id="lFn" onclick="showLayout('fn')">Fn / Esc</button>
+      </div>
+
+      <!-- Modifier Row -->
+      <div class="mod-row" id="modifierRow"></div>
+
+      <!-- Alpha Layout -->
+      <div id="layoutAlpha" class="kb-container"></div>
+
+      <!-- Numeric Layout -->
+      <div id="layoutNum" class="kb-container hidden"></div>
+
+      <!-- Fn Layout -->
+      <div id="layoutFn" class="hidden">
+        <div class="fn-row" id="fnRow"></div>
+      </div>
+
+      <!-- Arrow Keys -->
+      <div class="arrow-cluster">
+        <button class="kb-key up" onclick="tapKey('ArrowUp')">▲</button>
+        <button class="kb-key left" onclick="tapKey('ArrowLeft')">◀</button>
+        <button class="kb-key down" onclick="tapKey('ArrowDown')">▼</button>
+        <button class="kb-key right" onclick="tapKey('ArrowRight')">▶</button>
+      </div>
+
+      <!-- Native Input Toggle -->
+      <div class="native-input-wrap" style="margin-top:.5rem">
+        <input type="text" class="native-input" id="nativeInput" placeholder="Tap to type with phone keyboard…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+      </div>
+    </div>
+
+    <!-- MOUSE/TRACKPAD VIEW -->
+    <div id="viewMouse" class="hidden" style="display:flex;flex-direction:column;gap:.6rem;flex:1">
+      <div class="trackpad-area" id="trackpad"></div>
+      <div class="mouse-btns">
+        <button class="btn mouse-btn" onclick="mClick('left')" aria-label="Left click"></button>
+        <button class="btn mouse-btn" onclick="mClick('right')" aria-label="Right click"></button>
+      </div>
+    </div>
+  </div>
+
+  <span id="capsIndicator" class="hidden" style="position:fixed;right:.6rem;bottom:4.2rem;color:var(--warning);font-weight:800;font-size:.75rem;z-index:250">CAPS</span>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="common.js"></script>
+<script>
+/* ── Session Init ───────────────────────────────────────── */
+const sessionId = PhoneBridge.getSessionFromURL();
+if (sessionId) {
+  PhoneBridge.joinAsPhone(sessionId);
+  PhoneBridge.setupWebRTC(true);
+} else { Toast.show('No session ID', 'error'); }
+
+buildPhoneNav('keyboard');
+
+Guide.init([
+  { icon: '⌗', title: 'Wireless Keyboard', description: 'Full QWERTY keyboard with three layouts: Alphabetical (ABC), Numeric/Symbol (123), and Function keys (Fn).' },
+  { icon: 'L', title: 'Windows & Mac Modifiers', description: 'Choose Windows or MacBook to show the right modifier keys: Win/Alt on Windows, Cmd/Option on Mac. Tap a modifier to lock it for the next key.', tip: 'Modifiers glow when active and auto-release after one use.' },
+  { icon: 'A', title: 'Caps Lock & Native Input', description: 'Tap ⇪ for Caps Lock. Use the text box at the bottom to type quickly with your phone\'s native keyboard — characters are sent in real-time.' },
+  { icon: 'M', title: 'Trackpad Mode', description: 'Switch to Trackpad to control the mouse. <b>Drag</b> = move cursor, <b>Tap</b> = left click, <b>Two-finger tap</b> = right click, <b>Two-finger drag</b> = scroll.', tip: 'Adjust mouse speed with the slider at the bottom.' },
+  { icon: 'PL', title: 'Switch Modes', description: 'Use the bottom navigation bar to jump between all 5 modes instantly.' }
+]);
+
+socket.on('peer-connected', () => {
+  document.getElementById('connBadge').className = 'badge badge-success';
+  document.getElementById('connBadge').textContent = 'Connected';
+});
+socket.on('peer-disconnected', () => {
+  document.getElementById('connBadge').className = 'badge badge-danger';
+  document.getElementById('connBadge').textContent = 'Offline';
+});
+document.addEventListener('rtt-update', e => {
+  const rtt = document.getElementById('rttVal');
+  if (rtt) rtt.textContent = e.detail;
+});
+socket.on('theme-change', d => ThemeManager.apply(d.theme, false));
+
+/* ── State ──────────────────────────────────────────────── */
+let capsLock = false;
+let stickyMods = new Set();
+let keyboardOS = localStorage.getItem('phonelink-keyboard-os') || 'windows';
+
+const modifierSets = {
+  windows: [
+    { label: 'Ctrl', mod: 'ControlLeft' },
+    { label: 'Alt', mod: 'AltLeft' },
+    { label: 'Win', mod: 'MetaLeft' },
+    { label: 'Shift', mod: 'ShiftLeft' }
+  ],
+  mac: [
+    { label: 'Ctrl', mod: 'ControlLeft' },
+    { label: 'Option', mod: 'AltLeft' },
+    { label: 'Cmd', mod: 'MetaLeft' },
+    { label: 'Shift', mod: 'ShiftLeft' }
+  ]
+};
+
+/* ── Keyboard Layouts ───────────────────────────────────── */
+const alphaRows = [
+  ['Q','W','E','R','T','Y','U','I','O','P'],
+  ['A','S','D','F','G','H','J','K','L'],
+  ['Z','X','C','V','B','N','M']
+];
+const alphaSpecials = [
+  { label: '⌫', key: 'Backspace', cls: 'w15' },
+  { label: '⏎', key: 'Enter', cls: 'w15' },
+  { label: '⇥', key: 'Tab', cls: 'w15' },
+  { label: 'Caps', key: 'CapsLock', cls: 'w15', id: 'capsBtn' }
+];
+
+const numRows = [
+  ['1','2','3','4','5','6','7','8','9','0'],
+  ['!','@','#','$','%','^','&','*','(',')'],
+  ['-','_','=','+','[',']','{','}','|','\\'],
+  [':',';','"','\'','<','>',',','.','/','?'],
+  ['~','`']
+];
+
+function buildAlpha() {
+  const container = document.getElementById('layoutAlpha');
+  container.innerHTML = '';
+  // Caps + first row
+  const topRow = document.createElement('div');
+  topRow.className = 'kb-row';
+  const capsBtn = document.createElement('button');
+  capsBtn.className = 'kb-key w15';
+  capsBtn.id = 'capsBtn';
+  capsBtn.textContent = '⇪';
+  capsBtn.onclick = () => toggleCaps();
+  topRow.appendChild(capsBtn);
+  alphaRows[0].forEach(k => {
+    const b = document.createElement('button');
+    b.className = 'kb-key';
+    b.textContent = capsLock ? k : k.toLowerCase();
+    b.onclick = () => tapKey('Key' + k);
+    topRow.appendChild(b);
+  });
+  const bksp = document.createElement('button');
+  bksp.className = 'kb-key w15';
+  bksp.textContent = '⌫';
+  bindRepeatKey(bksp, 'Backspace');
+  topRow.appendChild(bksp);
+  container.appendChild(topRow);
+
+  // Row 2
+  const r2 = document.createElement('div');
+  r2.className = 'kb-row';
+  const tab = document.createElement('button');
+  tab.className = 'kb-key w15';
+  tab.textContent = '⇥';
+  tab.onclick = () => tapKey('Tab');
+  r2.appendChild(tab);
+  alphaRows[1].forEach(k => {
+    const b = document.createElement('button');
+    b.className = 'kb-key';
+    b.textContent = capsLock ? k : k.toLowerCase();
+    b.onclick = () => tapKey('Key' + k);
+    r2.appendChild(b);
+  });
+  const enter = document.createElement('button');
+  enter.className = 'kb-key w15';
+  enter.textContent = '⏎';
+  enter.onclick = () => tapKey('Enter');
+  r2.appendChild(enter);
+  container.appendChild(r2);
+
+  // Row 3
+  const r3 = document.createElement('div');
+  r3.className = 'kb-row';
+  alphaRows[2].forEach(k => {
+    const b = document.createElement('button');
+    b.className = 'kb-key';
+    b.textContent = capsLock ? k : k.toLowerCase();
+    b.onclick = () => tapKey('Key' + k);
+    r3.appendChild(b);
+  });
+  container.appendChild(r3);
+
+  // Spacebar row
+  const r4 = document.createElement('div');
+  r4.className = 'kb-row';
+  const space = document.createElement('button');
+  space.className = 'kb-key kb-space';
+  space.textContent = 'Space';
+  space.onclick = () => tapKey('Space');
+  r4.appendChild(space);
+  container.appendChild(r4);
+}
+
+function buildNum() {
+  const container = document.getElementById('layoutNum');
+  container.innerHTML = '';
+  numRows.forEach(row => {
+    const r = document.createElement('div');
+    r.className = 'kb-row';
+    row.forEach(k => {
+      const b = document.createElement('button');
+      b.className = 'kb-key';
+      b.textContent = k;
+      b.onclick = () => { haptic('light'); PhoneBridge.sendText(k); };
+      r.appendChild(b);
+    });
+    container.appendChild(r);
+  });
+}
+
+function buildFn() {
+  const row = document.getElementById('fnRow');
+  row.innerHTML = '';
+  const esc = document.createElement('button');
+  esc.className = 'kb-key fn-key';
+  esc.textContent = 'Esc';
+  esc.onclick = () => tapKey('Escape');
+  row.appendChild(esc);
+  for (let i = 1; i <= 12; i++) {
+    const b = document.createElement('button');
+    b.className = 'kb-key fn-key';
+    b.textContent = 'F' + i;
+    b.onclick = () => tapKey('F' + i);
+    row.appendChild(b);
+  }
+  // Add Del, Home, End, PgUp, PgDn
+  ['Delete','Home','End'].forEach(k => {
+    const b = document.createElement('button');
+    b.className = 'kb-key fn-key';
+    b.textContent = k.slice(0,3);
+    if (k === 'Delete') bindRepeatKey(b, k);
+    else b.onclick = () => tapKey(k);
+    row.appendChild(b);
+  });
+}
+
+function buildModifiers() {
+  const row = document.getElementById('modifierRow');
+  row.innerHTML = '';
+  const esc = document.createElement('button');
+  esc.className = 'kb-key mod-key';
+  esc.textContent = 'Esc';
+  esc.onclick = () => tapKey('Escape');
+  row.appendChild(esc);
+  modifierSets[keyboardOS].forEach(({ label, mod }) => {
+    const b = document.createElement('button');
+    b.className = 'kb-key mod-key';
+    b.dataset.mod = mod;
+    b.textContent = label;
+    b.onclick = () => toggleMod(b);
+    row.appendChild(b);
+  });
+  document.getElementById('osWin').classList.toggle('active', keyboardOS === 'windows');
+  document.getElementById('osMac').classList.toggle('active', keyboardOS === 'mac');
+}
+
+function setKeyboardOS(os) {
+  keyboardOS = os;
+  localStorage.setItem('phonelink-keyboard-os', os);
+  stickyMods.clear();
+  buildModifiers();
+  haptic('light');
+}
+
+buildAlpha();
+buildNum();
+buildFn();
+buildModifiers();
+
+function bindRepeatKey(button, key) {
+  let timeout = null;
+  let interval = null;
+  let delay = 140;
+  const fire = () => PhoneBridge.sendKey(key);
+  const stop = () => {
+    clearTimeout(timeout);
+    clearInterval(interval);
+    timeout = null;
+    interval = null;
+    button.classList.remove('pressed');
+  };
+  button.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    haptic('light');
+    button.setPointerCapture?.(e.pointerId);
+    button.classList.add('pressed');
+    fire();
+    delay = 140;
+    timeout = setTimeout(() => {
+      interval = setInterval(() => {
+        fire();
+        delay = Math.max(45, delay - 10);
+        clearInterval(interval);
+        interval = setInterval(fire, delay);
+      }, delay);
+    }, 330);
+  });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(evt => button.addEventListener(evt, stop));
+}
+
+/* ── Key tapping ────────────────────────────────────────── */
+function tapKey(key) {
+  haptic('light');
+  const mods = Array.from(stickyMods);
+  PhoneBridge.sendKey(key, mods);
+  // Release sticky mods after use
+  if (stickyMods.size > 0) {
+    stickyMods.clear();
+    document.querySelectorAll('.mod-key').forEach(b => b.classList.remove('sticky-active'));
+  }
+}
+
+/* ── Sticky Modifiers ───────────────────────────────────── */
+function toggleMod(btn) {
+  const mod = btn.dataset.mod;
+  haptic('light');
+  if (stickyMods.has(mod)) {
+    stickyMods.delete(mod);
+    btn.classList.remove('sticky-active');
+  } else {
+    stickyMods.add(mod);
+    btn.classList.add('sticky-active');
+  }
+}
+
+/* ── Caps Lock ──────────────────────────────────────────── */
+function toggleCaps() {
+  capsLock = !capsLock;
+  haptic('medium');
+  document.getElementById('capsIndicator').classList.toggle('hidden', !capsLock);
+  const capsBtn = document.getElementById('capsBtn');
+  if (capsBtn) capsBtn.classList.toggle('caps-on', capsLock);
+  buildAlpha(); // Rebuild to update case
+  PhoneBridge.sendKey('CapsLock');
+}
+
+/* ── Layout Switching ───────────────────────────────────── */
+function showLayout(layout) {
+  document.getElementById('layoutAlpha').classList.toggle('hidden', layout !== 'alpha');
+  document.getElementById('layoutNum').classList.toggle('hidden', layout !== 'num');
+  document.getElementById('layoutFn').classList.toggle('hidden', layout !== 'fn');
+  document.getElementById('lAlpha').classList.toggle('active', layout === 'alpha');
+  document.getElementById('lNum').classList.toggle('active', layout === 'num');
+  document.getElementById('lFn').classList.toggle('active', layout === 'fn');
+}
+
+/* ── View Switching ─────────────────────────────────────── */
+function showView(view) {
+  document.getElementById('viewKeyboard').classList.toggle('hidden', view !== 'keyboard');
+  document.getElementById('viewMouse').classList.toggle('hidden', view !== 'mouse');
+  document.getElementById('vKb').classList.toggle('active', view === 'keyboard');
+  document.getElementById('vMouse').classList.toggle('active', view === 'mouse');
+  if (view === 'mouse') initTrackpad();
+}
+
+/* ── Native Input ───────────────────────────────────────── */
+let lastNativeVal = '';
+const nativeInput = document.getElementById('nativeInput');
+nativeInput.addEventListener('input', () => {
+  const val = nativeInput.value;
+  if (val.length > lastNativeVal.length) {
+    const added = val.slice(lastNativeVal.length);
+    PhoneBridge.sendText(added);
+  } else if (val.length < lastNativeVal.length) {
+    const removed = lastNativeVal.length - val.length;
+    for (let i = 0; i < removed; i++) PhoneBridge.sendKey('Backspace');
+  }
+  lastNativeVal = val;
+});
+
+/* ── Trackpad / Mouse ───────────────────────────────────── */
+let trackpadInit = false;
+function initTrackpad() {
+  if (trackpadInit) return;
+  trackpadInit = true;
+  const pad = document.getElementById('trackpad');
+  let lastX = 0, lastY = 0, touching = false, fingers = 0;
+  let tapStart = 0, tapMoved = false;
+
+  const speed = () => getControlSpeed('keyboard');
+  const sendMv = throttle((dx, dy) => PhoneBridge.sendMouseMove(dx, dy), 16);
+
+  pad.addEventListener('touchstart', e => {
+    e.preventDefault();
+    fingers = e.touches.length;
+    const t = e.touches[0];
+    lastX = t.clientX; lastY = t.clientY;
+    touching = true; tapStart = Date.now(); tapMoved = false;
+  }, { passive: false });
+
+  pad.addEventListener('touchmove', e => {
+    e.preventDefault();
+    if (!touching) return;
+    tapMoved = true;
+    const t = e.touches[0];
+    const dx = (t.clientX - lastX) * speed();
+    const dy = (t.clientY - lastY) * speed();
+    lastX = t.clientX; lastY = t.clientY;
+
+    if (fingers >= 2) {
+      PhoneBridge.sendMouseScroll(0, Math.max(-18, Math.min(18, -dy * 1.8)));
+    } else if (fingers >= 3) {
+      // Three-finger swipe -> desktop switch
+      if (Math.abs(dx) > 30) {
+        PhoneBridge.sendKey(dx > 0 ? 'ArrowRight' : 'ArrowLeft', ['ControlLeft']);
+      }
+    } else {
+      sendMv(dx, dy);
+    }
+  }, { passive: false });
+
+  pad.addEventListener('touchend', e => {
+    e.preventDefault();
+    const duration = Date.now() - tapStart;
+    if (!tapMoved && duration < 300) {
+      if (fingers === 2) mClick('right');
+      else mClick('left');
+    }
+    touching = false; fingers = 0;
+  }, { passive: false });
+}
+
+function mClick(btn) {
+  haptic('medium');
+  PhoneBridge.sendMouseClick(btn);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark-galaxy">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>PhoneLink Mobile</title>
+<link rel="stylesheet" href="common.css">
+<style>
+  .mobile-landing{min-height:100vh;min-height:100dvh}
+  .mobile-brandbar{position:sticky;top:0;z-index:120;display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:.7rem .85rem;border-bottom:1px solid var(--border-glass);background:color-mix(in srgb,var(--bg-secondary) 86%,transparent);backdrop-filter:blur(var(--blur))}
+  .brand-lockup{display:flex;align-items:center;gap:.55rem;min-width:0}
+  .brand-mark{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 12px 28px var(--accent-glow);color:#fff;font-weight:900;font-size:.72rem}
+  .brand-name{font-family:'Space Grotesk',sans-serif;font-weight:900;letter-spacing:-.01em}
+  .mobile-hero{min-height:48vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2rem .95rem 1rem;position:relative;overflow:hidden}
+  .mobile-hero::before{content:'';position:absolute;inset:10% -20%;border-radius:50%;background:linear-gradient(135deg,var(--accent-glow),var(--accent2-glow));filter:blur(70px);opacity:.62;animation:float 7s ease-in-out infinite;pointer-events:none}
+  .mobile-hero>*{position:relative;z-index:1}
+  .kicker{font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.24em;font-size:.64rem;font-weight:800;color:var(--text-secondary);margin-bottom:1rem}
+  .mobile-hero h1{font-family:'Space Grotesk',sans-serif;font-size:clamp(2.4rem,15vw,4.2rem);line-height:1.02;letter-spacing:-.035em;font-weight:900;text-shadow:0 0 22px var(--accent-glow)}
+  .mobile-hero p{max-width:23rem;color:var(--text-secondary);font-size:.95rem;margin-top:1rem}
+  .scroll-cue{margin-top:1.3rem;color:var(--text-muted);font-size:.72rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+  .mobile-swirl{height:220vh;margin-top:-.5rem;margin-bottom:1rem}
+  .mobile-swirl .swirl-sticky{top:max(.25rem,calc((100dvh - 52px - 520px)/2));height:520px;width:100%;perspective:2000px}
+  .mobile-swirl .swirl-card{width:min(86vw,360px);min-height:240px;padding:1.55rem;text-decoration:none;color:var(--text-primary)}
+  .mobile-swirl .s-icon{font-family:'JetBrains Mono',monospace;font-size:2rem;color:var(--accent)}
+  .mobile-swirl .swirl-card h3{font-size:1.35rem}
+  .mobile-swirl .swirl-card p{font-size:.88rem}
+  @media(max-width:380px){.mobile-hero h1{font-size:2.25rem}}
+</style>
+</head>
+<body>
+<div class="mobile-landing">
+  <header class="mobile-brandbar">
+    <div class="brand-lockup">
+      <div class="brand-mark">PL</div>
+      <div class="brand-name">PhoneLink</div>
+    </div>
+    <span id="connBadge" class="badge badge-danger">Offline</span>
+  </header>
+
+  <main>
+    <section class="mobile-hero">
+      <div class="kicker">PhoneLink Mobile</div>
+      <h1>Choose your control surface.</h1>
+      <p>Scroll through the feature spiral and tap a card to open that mode on this phone.</p>
+      <div class="scroll-cue">Scroll for modes</div>
+    </section>
+
+    <section class="swirl-container mobile-swirl" id="featuresSwirl">
+      <div class="swirl-sticky">
+        <a class="swirl-card" id="swirl-0" href="#" data-mode="presentation">
+          <div class="s-icon">▭</div>
+          <h3>Presentation</h3>
+          <p>Slide navigation, timer, escape key, space key, and pointer control.</p>
+        </a>
+        <a class="swirl-card" id="swirl-1" href="#" data-mode="whiteboard">
+          <div class="s-icon">□</div>
+          <h3>Whiteboard</h3>
+          <p>Draw live with pen, shapes, text, undo, redo, and true erase.</p>
+        </a>
+        <a class="swirl-card" id="swirl-2" href="#" data-mode="media">
+          <div class="s-icon">♪</div>
+          <h3>Media</h3>
+          <p>Playback, volume, mute, previous, next, and five-second seek.</p>
+        </a>
+        <a class="swirl-card" id="swirl-3" href="#" data-mode="keyboard">
+          <div class="s-icon">⌗</div>
+          <h3>Keyboard & Mouse</h3>
+          <p>Windows and Mac keyboard layouts with a fast gesture trackpad.</p>
+        </a>
+        <a class="swirl-card" id="swirl-4" href="#" data-mode="builder">
+          <div class="s-icon">◇</div>
+          <h3>Custom Keys</h3>
+          <p>Create custom shortcut panels, macros, text buttons, and mouse actions.</p>
+        </a>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="common.js"></script>
+<script>
+const sessionId = PhoneBridge.getSessionFromURL();
+if (sessionId) PhoneBridge.joinAsPhone(sessionId);
+else Toast.show('No session ID in URL', 'error');
+
+buildPhoneNav('mobile');
+
+document.querySelectorAll('[data-mode]').forEach(link => {
+  const session = sessionId || '';
+  link.href = `controller.html?session=${session}&mode=${link.dataset.mode}`;
+});
+
+function updateFeatureSwirl() {
+  const sw = document.getElementById('featuresSwirl');
+  if (!sw) return;
+  const rect = sw.getBoundingClientRect();
+  const sectionHeight = rect.height - window.innerHeight;
+  const progress = Math.max(0, Math.min(1, sectionHeight <= 0 ? 0 : -rect.top / sectionHeight));
+  const hold = 0.2;
+  const adjusted = progress < hold ? 0 : progress > 1 - hold ? 1 : (progress - hold) / (1 - 2 * hold);
+  const spiralAngle = adjusted * (4 / 5) * Math.PI * 2;
+
+  for (let i = 0; i < 5; i += 1) {
+    const card = document.getElementById(`swirl-${i}`);
+    if (!card) continue;
+    const currentAngle = (i / 5) * Math.PI * 2 - spiralAngle;
+    const radius = 450;
+    const x = Math.sin(currentAngle) * radius;
+    const z = Math.cos(currentAngle) * radius - radius;
+    const y = currentAngle * 180;
+    const opacity = Math.max(0, 1 - Math.abs(currentAngle) / 1.2);
+    const glow = Math.pow(Math.max(0, 1 - Math.abs(currentAngle) / 0.8), 3);
+    card.style.opacity = opacity;
+    card.style.transform = `translate3d(${x}px, ${y}px, ${z}px) rotateY(${currentAngle * 180 / Math.PI}deg)`;
+    card.style.zIndex = Math.round((Math.cos(currentAngle) + 1) * 100);
+    card.style.visibility = opacity > 0 ? 'visible' : 'hidden';
+    card.style.boxShadow = glow ? `0 0 ${40 * glow}px var(--accent-glow), inset 0 0 ${20 * glow}px var(--accent-glow)` : '';
+  }
+}
+window.addEventListener('scroll', updateFeatureSwirl, { passive: true });
+window.addEventListener('load', updateFeatureSwirl);
+requestAnimationFrame(updateFeatureSwirl);
+
+Guide.init([
+  { icon: 'PL', title: 'PhoneLink Mobile', description: 'Scroll through the spiral cards and tap a mode to open it.' },
+  { icon: '▭', title: 'Presentation', description: 'Control slides, timer, escape, space, and pointer movement.' },
+  { icon: '□', title: 'Whiteboard', description: 'Draw live using pen, shapes, text, undo, redo, and true erase.' },
+  { icon: '◇', title: 'Custom Keys', description: 'Build macro buttons and custom shortcut panels.' }
+]);
+
+socket.on('peer-connected', () => {
+  document.getElementById('connBadge').className = 'badge badge-success';
+  document.getElementById('connBadge').textContent = 'Connected';
+});
+socket.on('peer-disconnected', () => {
+  document.getElementById('connBadge').className = 'badge badge-danger';
+  document.getElementById('connBadge').textContent = 'Offline';
+});
+</script>
+</body>
+</html>

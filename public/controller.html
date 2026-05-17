@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark-galaxy">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>PhoneLink Controller</title>
+<link rel="stylesheet" href="common.css">
+<style>
+  .controller-shell{height:100vh;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+  .controller-main{flex:1;min-height:0;overflow:auto;padding:.75rem;display:flex;flex-direction:column;gap:.75rem}
+  .hero{min-height:42vh;padding:1.2rem;border-radius:var(--radius-lg);display:flex;flex-direction:column;justify-content:flex-end;position:relative;text-align:left}
+  .hero::before{content:'';position:absolute;inset:-20%;background:radial-gradient(circle at 26% 20%,var(--accent-glow),transparent 35%),radial-gradient(circle at 82% 40%,var(--accent2-glow),transparent 34%);animation:meshShift 12s ease-in-out infinite alternate;pointer-events:none}
+  .hero>*{position:relative;z-index:1}
+  .hero-mark{width:54px;height:54px;border-radius:18px;display:grid;place-items:center;background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 18px 42px var(--accent-glow);color:#fff;font-weight:900;font-size:1rem;margin-bottom:.9rem}
+  .hero h1{font-family:'Space Grotesk',sans-serif;font-size:1.95rem;line-height:1.05;letter-spacing:-.02em;font-weight:950;text-shadow:0 0 22px var(--accent-glow)}
+  .hero p{color:var(--text-secondary);font-size:.92rem;margin-top:.5rem}
+  .mobile-kicker{font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.24em;font-size:.64rem;font-weight:800;color:var(--text-secondary);margin-bottom:.8rem}
+  .controller-swirl{height:220vh;margin:.25rem 0 5rem}
+  .controller-swirl .swirl-sticky{top:max(.25rem,calc((100dvh - 52px - 520px)/2));height:520px;width:100%;perspective:2000px}
+  .controller-swirl .swirl-card{width:min(86vw,360px);min-height:240px;padding:1.55rem;text-decoration:none;color:var(--text-primary)}
+  .controller-swirl .s-icon{font-family:'JetBrains Mono',monospace;font-size:2rem;color:var(--accent)}
+  .controller-swirl .swirl-card h3{font-size:1.35rem}
+  .controller-swirl .swirl-card p{font-size:.88rem}
+  .scroll-cue{margin-top:1rem;color:var(--text-muted);font-size:.72rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+  .mode-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.65rem}
+  .mode-card{min-height:112px;padding:1rem;border-radius:var(--radius);display:flex;flex-direction:column;justify-content:space-between;background:var(--bg-card);border:1px solid var(--border-glass);box-shadow:var(--shadow-sm);transition:transform var(--transition-fast),border-color var(--transition-fast)}
+  .mode-card:active{transform:scale(.97)}.mode-card .icon{font-size:1.6rem}.mode-card strong{font-size:.9rem}.mode-card small{color:var(--text-muted);font-size:.68rem;line-height:1.35}
+  .mode-topbar{display:flex;align-items:center;justify-content:space-between;gap:.6rem}
+  .mode-title{font-weight:900;font-size:1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .segmented{display:flex;gap:.25rem;padding:.25rem;border-radius:var(--radius-sm);border:1px solid var(--border-glass);background:var(--bg-glass)}
+  .segmented button{flex:1;min-height:38px;padding:.4rem .55rem;border-radius:var(--radius-xs);font-size:.76rem;font-weight:800;color:var(--text-secondary)}
+  .segmented button.active{background:var(--accent);color:#071016}
+  .remote-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.65rem}
+  .remote-btn{min-height:88px;font-size:1.15rem;font-weight:900;display:flex;flex-direction:column;gap:.3rem}
+  .remote-btn small{font-size:.66rem;text-transform:uppercase;color:inherit;opacity:.7}
+  .timer-card{text-align:center;padding:1rem}.timer-card .time{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:2.4rem;font-weight:900;color:var(--accent)}
+  .trackpad-area{width:100%;aspect-ratio:4/3;max-height:54vh;border-radius:var(--radius);background:var(--bg-glass);border:1px solid var(--border-glass);touch-action:none;position:relative}
+  .trackpad-area::after{content:'Drag to move • two fingers scroll';position:absolute;inset:0;display:grid;place-items:center;color:var(--text-muted);font-size:.78rem;text-align:center;pointer-events:none}
+  .mouse-btns{display:grid;grid-template-columns:repeat(2,1fr);gap:.55rem}.mouse-btn{min-height:46px;font-size:0}.mouse-btn::after{content:'';width:8px;height:8px;border-radius:50%;background:currentColor;opacity:.65}
+  .speed-row{display:flex;align-items:center;gap:.6rem;color:var(--text-secondary);font-size:.75rem}
+  .kb-row{display:flex;gap:.22rem;width:100%;margin-bottom:.3rem}.kb-row .kb-key{flex:1 1 0;min-width:0;font-size:.76rem;padding:.36rem .12rem}
+  .mod-row,.tool-row{display:flex;gap:.35rem;overflow-x:auto;padding-bottom:.15rem}.mod-row .kb-key{min-width:68px}
+  .canvas-wrap{flex:1;min-height:320px;border-radius:var(--radius);background:#fff;overflow:hidden;touch-action:none;border:1px solid var(--border-glass)}.canvas-wrap canvas{width:100%;height:100%;touch-action:none}
+  .toolbar{flex-wrap:nowrap}.builder-area{min-height:360px;position:relative;border-radius:var(--radius);background:var(--bg-glass);border:1px solid var(--border-glass);overflow:hidden;touch-action:none}
+  .custom-key{position:absolute;display:grid;place-items:center;border-radius:10px;border:1px solid rgba(255,255,255,.2);font-weight:900;touch-action:none;user-select:none;cursor:grab;z-index:1}
+  .custom-key.selected{border-color:var(--accent)!important;box-shadow:0 0 18px var(--accent-glow)}
+  .custom-key.testing:active{transform:scale(.92);box-shadow:0 0 22px var(--accent-glow)}
+  .builder-toolbar,.wb-toolbar{display:flex;gap:.35rem;align-items:center;flex-wrap:wrap;padding:.5rem;background:var(--bg-glass);border-radius:var(--radius-sm);border:1px solid var(--border-glass)}
+  .builder-toolbar .btn,.wb-toolbar .btn{padding:.4rem .58rem;font-size:.72rem;min-height:36px}
+  .mode-row{display:flex;gap:.3rem;padding:.25rem;background:var(--bg-glass);border-radius:var(--radius-sm);border:1px solid var(--border-glass)}
+  .mode-row button{flex:1;padding:.45rem;border-radius:var(--radius-xs);font-size:.78rem;font-weight:800;color:var(--text-secondary)}
+  .mode-row button.active{background:var(--accent);color:#071016}
+  .form-group{margin-bottom:.75rem}.form-group label{display:block;font-size:.72rem;font-weight:800;color:var(--text-secondary);margin-bottom:.3rem;text-transform:uppercase;letter-spacing:.04em}
+  .shape-picker{display:flex;gap:.4rem;flex-wrap:wrap}.shape-opt{width:40px;height:40px;border-radius:var(--radius-xs);display:flex;align-items:center;justify-content:center;font-size:.72rem;background:var(--bg-glass);border:1px solid var(--border-glass);cursor:pointer}.shape-opt.active{background:var(--accent);color:#071016;border-color:var(--accent)}
+  .modal-sheet{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.65);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;padding:1rem}
+  .modal-sheet-inner{width:min(92vw,430px);max-height:86vh;overflow:auto;padding:1.2rem;border-radius:var(--radius);background:var(--bg-secondary);border:1px solid var(--border-glass);box-shadow:var(--shadow-lg)}
+  .size-display{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.72rem;min-width:28px;text-align:center;color:var(--text-secondary)}
+  .wb-toolbar input[type="color"]{width:36px;height:36px;border:2px solid var(--border-glass);border-radius:50%;cursor:pointer;background:transparent;padding:0;-webkit-appearance:none}.wb-toolbar input[type="color"]::-webkit-color-swatch-wrapper{padding:2px}.wb-toolbar input[type="color"]::-webkit-color-swatch{border-radius:50%;border:none}
+  .wb-click-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.55rem}
+  .wb-lock-btn{width:100%;min-height:52px}
+  .wb-lock-btn.active{background:var(--accent);color:#071016;border-color:var(--accent);box-shadow:0 0 22px var(--accent-glow);animation:glowPulse 1.4s ease-in-out infinite}
+  .wb-help{font-size:.78rem;line-height:1.55;color:var(--text-secondary);padding:.75rem;border-radius:var(--radius-sm);background:var(--bg-glass);border:1px solid var(--border-glass)}
+  .phone-wb-stage{flex:1;min-height:52vh;border-radius:var(--radius);overflow:hidden;background:#fff;border:1px solid #111;box-shadow:inset 0 0 0 1px #111,var(--shadow-md);position:relative;touch-action:none}
+  .phone-wb-stage canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+  .phone-wb-toolbar{display:flex;gap:.35rem;align-items:center;overflow-x:auto;padding:.45rem;background:var(--bg-glass);border:1px solid var(--border-glass);border-radius:var(--radius-sm)}
+  .phone-wb-toolbar .btn{min-width:42px;padding:.4rem .55rem}
+  .phone-wb-toolbar .btn.active{background:var(--accent);color:#071016;border-color:var(--accent)}
+  .hidden-view{display:none!important}
+</style>
+</head>
+<body>
+<div class="controller-shell">
+  <header class="phone-header">
+    <div style="display:flex;align-items:center;gap:.5rem;min-width:0">
+      <span style="width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:grid;place-items:center;color:#fff;font-size:.62rem;font-weight:900">PL</span>
+      <span style="font-weight:900;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:'Space Grotesk',sans-serif">PhoneLink</span>
+    </div>
+    <div class="flex items-center gap-sm">
+      <span id="connBadge" class="badge badge-warning">Pairing</span>
+    </div>
+  </header>
+
+  <main class="controller-main">
+    <section id="homeView">
+      <div class="glass-heavy hero animate-fade">
+        <div class="hero-mark">PL</div>
+        <div class="mobile-kicker">PhoneLink Mobile</div>
+        <h1>Choose your control surface.</h1>
+        <p>Scroll through the feature spiral and tap a card to open that mode.</p>
+        <div class="scroll-cue">Scroll for modes</div>
+      </div>
+      <section class="swirl-container controller-swirl" id="controllerFeaturesSwirl">
+        <div class="swirl-sticky">
+          <button class="swirl-card" id="swirl-0" type="button" data-mode="presentation"><div class="s-icon">▭</div><h3>Presentation</h3><p>Slide navigation, timer, escape key, space key, and pointer control.</p></button>
+          <button class="swirl-card" id="swirl-1" type="button" data-mode="whiteboard"><div class="s-icon">□</div><h3>Whiteboard</h3><p>Draw live with pen, shapes, text, undo, redo, and true erase.</p></button>
+          <button class="swirl-card" id="swirl-2" type="button" data-mode="media"><div class="s-icon">♪</div><h3>Media</h3><p>Playback, volume, mute, previous, next, and five-second seek.</p></button>
+          <button class="swirl-card" id="swirl-3" type="button" data-mode="keyboard"><div class="s-icon">⌗</div><h3>Keyboard & Mouse</h3><p>Windows and Mac keyboard layouts with a fast gesture trackpad.</p></button>
+          <button class="swirl-card" id="swirl-4" type="button" data-mode="builder"><div class="s-icon">◇</div><h3>Custom Keys</h3><p>Create custom shortcut panels, macros, text buttons, and mouse actions.</p></button>
+        </div>
+      </section>
+    </section>
+
+    <section id="modeView" class="hidden-view">
+      <div class="mode-topbar">
+        <button class="btn btn-sm" onclick="goHome()">← Modes</button>
+        <div class="mode-title" id="modeTitle">Mode</div>
+      </div>
+      <div id="modeContent" style="display:flex;flex-direction:column;gap:.75rem;margin-top:.75rem"></div>
+    </section>
+  </main>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="common.js"></script>
+<script src="whiteboard-core.js"></script>
+<script>
+const sessionId = PhoneBridge.getSessionFromURL();
+const requestedMode = new URLSearchParams(window.location.search).get('mode');
+let timerInterval = null, timerSeconds = 0, timerRunning = false;
+let activeMods = new Set(), caps = false, keyboardOS = localStorage.getItem('phonelink-keyboard-os') || 'windows';
+let phoneWhiteboard = null;
+
+if (sessionId) {
+  PhoneBridge.joinAsPhone(sessionId);
+  PhoneBridge.setupWebRTC(true);
+} else Toast.show('Missing session id', 'error');
+
+socket.on('peer-connected', () => { badge('Connected', 'badge-success'); Toast.show('Connected to laptop', 'success'); });
+socket.on('peer-disconnected', () => badge('Offline', 'badge-danger'));
+socket.on('wb-event', event => phoneWhiteboard?.receive(event));
+document.addEventListener('datachannel-message', event => {
+  if (typeof event.detail !== 'string') return;
+  try {
+    const data = JSON.parse(event.detail);
+    if (data.type === 'wb') phoneWhiteboard?.receive(data.event);
+  } catch (error) {}
+});
+function badge(text, cls){const b=document.getElementById('connBadge');b.className='badge '+cls;b.textContent=text;}
+
+Guide.init([
+  { icon:'PL', title:'PhoneLink', description:'Pick a mode, then use the phone as a polished controller for your laptop.' },
+  { icon:'▭', title:'Presentation', description:'Use Previous, Next, Esc, Space, timer, and a presentation trackpad to control slides.' },
+  { icon:'♪', title:'Media Remote', description:'Control playback, previous/next, volume, mute, and five-second seeking.' },
+  { icon:'⌗', title:'Keyboard & Mouse', description:'Switch Windows/Mac layouts, use sticky modifiers, type with the native phone keyboard, and move the cursor with the trackpad.' },
+  { icon:'□', title:'Whiteboard', description:'Draw directly on the phone canvas. Strokes appear on the laptop over WebRTC with pen, eraser, shapes, arrows, text, undo, redo, and export.' },
+  { icon:'◇', title:'Keyboard Builder', description:'Create custom shortcut keys with labels, colors, shapes, actions, text strings, mouse clicks, and macros.' },
+  { icon:'S', title:'Settings', description:'Change themes, fullscreen mode, vibration, and pointer speed for keyboard and presentation trackpads.' }
+]);
+
+if (requestedMode && requestedMode !== 'home' && requestedMode !== 'mobile') {
+  setTimeout(() => openMode(requestedMode === 'keyboard-builder' ? 'builder' : requestedMode), 0);
+}
+
+function updateControllerSwirl() {
+  const sw = document.getElementById('controllerFeaturesSwirl');
+  if (!sw) return;
+  const scroller = document.querySelector('.controller-main');
+  const rect = sw.getBoundingClientRect();
+  const scrollRect = scroller?.getBoundingClientRect();
+  const viewportHeight = scrollRect?.height || window.innerHeight;
+  const top = scrollRect ? rect.top - scrollRect.top : rect.top;
+  const sectionHeight = rect.height - viewportHeight;
+  const progress = Math.max(0, Math.min(1, sectionHeight <= 0 ? 0 : -top / sectionHeight));
+  const hold = 0.2;
+  const adjusted = progress < hold ? 0 : progress > 1 - hold ? 1 : (progress - hold) / (1 - 2 * hold);
+  const spiralAngle = adjusted * (4 / 5) * Math.PI * 2;
+
+  for (let i = 0; i < 5; i += 1) {
+    const card = document.getElementById(`swirl-${i}`);
+    if (!card) continue;
+    const currentAngle = (i / 5) * Math.PI * 2 - spiralAngle;
+    const radius = 450;
+    const x = Math.sin(currentAngle) * radius;
+    const z = Math.cos(currentAngle) * radius - radius;
+    const y = currentAngle * 180;
+    const opacity = Math.max(0, 1 - Math.abs(currentAngle) / 1.2);
+    const glow = Math.pow(Math.max(0, 1 - Math.abs(currentAngle) / 0.8), 3);
+    card.style.opacity = opacity;
+    card.style.transform = `translate3d(${x}px, ${y}px, ${z}px) rotateY(${currentAngle * 180 / Math.PI}deg)`;
+    card.style.zIndex = Math.round((Math.cos(currentAngle) + 1) * 100);
+    card.style.visibility = opacity > 0 ? 'visible' : 'hidden';
+    card.style.boxShadow = glow ? `0 0 ${40 * glow}px var(--accent-glow), inset 0 0 ${20 * glow}px var(--accent-glow)` : '';
+  }
+}
+document.querySelector('.controller-main')?.addEventListener('scroll', updateControllerSwirl, { passive: true });
+window.addEventListener('resize', updateControllerSwirl);
+window.addEventListener('load', updateControllerSwirl);
+requestAnimationFrame(updateControllerSwirl);
+document.querySelectorAll('#controllerFeaturesSwirl [data-mode]').forEach(card => {
+  card.addEventListener('click', () => openMode(card.dataset.mode));
+});
+
+function goHome(){document.getElementById('modeView').classList.add('hidden-view');document.getElementById('homeView').classList.remove('hidden-view');document.querySelector('.controller-main')?.scrollTo({top:0,behavior:'smooth'});setTimeout(updateControllerSwirl,120);}
+function openMode(mode){haptic('medium');document.getElementById('homeView').classList.add('hidden-view');document.getElementById('modeView').classList.remove('hidden-view');document.getElementById('modeTitle').textContent={presentation:'Presentation',media:'Media Remote',keyboard:'Keyboard & Mouse',whiteboard:'Whiteboard',builder:'Keyboard Builder'}[mode];socket.emit('mode-change',{mode:mode==='builder'?'keyboard-builder':mode});renderMode(mode);}
+
+function renderMode(mode){
+  const c=document.getElementById('modeContent');
+  if(mode==='presentation') c.innerHTML=`
+    <div class="glass timer-card"><div class="time" id="timerText">00:00</div><div class="flex justify-center gap-sm" style="margin-top:.6rem"><button class="btn btn-sm" onclick="toggleTimer()" id="timerBtn">Start</button><button class="btn btn-sm" onclick="resetTimer()">Reset</button></div></div>
+    <div class="remote-grid"><button class="btn remote-btn" onclick="sendKey('ArrowLeft')">◀<small>Previous</small></button><button class="btn btn-primary remote-btn" onclick="sendKey('ArrowRight')">▶<small>Next</small></button></div>
+    <div class="remote-grid"><button class="btn" onclick="sendKey('Escape')">Esc</button><button class="btn" onclick="sendKey('Space')">Space</button></div>
+    ${trackpadMarkup('presentation')}`;
+  if(mode==='media') c.innerHTML=`
+    <div class="glass timer-card"><div style="font-size:2rem;color:var(--accent)">♪</div><strong id="nowTitle">Now Playing</strong><p id="nowArtist" style="color:var(--text-muted)">Waiting for media info</p></div>
+    <button class="btn btn-primary remote-btn" onclick="sendKey('MediaPlayPause')">Play / Pause</button>
+    <div class="remote-grid"><button class="btn" onclick="sendKey('MediaPrevTrack')">Prev</button><button class="btn" onclick="sendKey('MediaNextTrack')">Next</button></div>
+    <div class="remote-grid"><button class="btn" onclick="sendKey('ArrowLeft')">-5s</button><button class="btn" onclick="sendKey('ArrowRight')">+5s</button></div>
+    <div class="remote-grid"><button class="btn" onclick="sendKey('AudioVolumeDown')">Vol -</button><button class="btn" onclick="sendKey('AudioVolumeUp')">Vol +</button></div>
+    <button class="btn" onclick="sendKey('AudioVolumeMute')">Mute</button>`;
+  if(mode==='keyboard') c.innerHTML=keyboardMarkup(), initKeyboard();
+  if(mode==='whiteboard') c.innerHTML=whiteboardMarkup(), initWhiteboard();
+  if(mode==='builder') c.innerHTML=builderMarkup(), initBuilder();
+  if(mode==='presentation') initTrackpad('presentation');
+}
+
+function sendKey(key, mods=[]){haptic('light');PhoneBridge.sendKey(key, mods);}
+function trackpadMarkup(kind){return `<div class="trackpad-area" id="${kind}Pad"></div><div class="mouse-btns"><button class="btn mouse-btn" onclick="PhoneBridge.sendMouseClick('left')" aria-label="Left click"></button><button class="btn mouse-btn" onclick="PhoneBridge.sendMouseClick('right')" aria-label="Right click"></button></div>`}
+function initTrackpad(kind='keyboard'){const pad=document.getElementById(kind+'Pad');if(!pad||pad.dataset.ready)return;pad.dataset.ready='1';let lx=0,ly=0,touching=false,fingers=0,moved=false,started=0;const speed=()=>getControlSpeed(kind==='presentation'?'presentation':'keyboard');const move=throttle((dx,dy)=>PhoneBridge.sendMouseMove(dx,dy),16);pad.addEventListener('touchstart',e=>{e.preventDefault();fingers=e.touches.length;const t=e.touches[0];lx=t.clientX;ly=t.clientY;touching=true;moved=false;started=Date.now();},{passive:false});pad.addEventListener('touchmove',e=>{e.preventDefault();if(!touching)return;moved=true;const t=e.touches[0];const dx=(t.clientX-lx)*speed(),dy=(t.clientY-ly)*speed();lx=t.clientX;ly=t.clientY;if(fingers>=2)PhoneBridge.sendMouseScroll(0,Math.max(-18,Math.min(18,-dy*1.8)));else move(dx,dy);},{passive:false});pad.addEventListener('touchend',e=>{e.preventDefault();if(!moved&&Date.now()-started<300)PhoneBridge.sendMouseClick(fingers===2?'right':'left');touching=false;fingers=0;},{passive:false});}
+
+function toggleTimer(){timerRunning=!timerRunning;document.getElementById('timerBtn').textContent=timerRunning?'Pause':'Start';clearInterval(timerInterval);if(timerRunning)timerInterval=setInterval(()=>{timerSeconds++;document.getElementById('timerText').textContent=formatTime(timerSeconds)},1000)}
+function resetTimer(){timerRunning=false;timerSeconds=0;clearInterval(timerInterval);document.getElementById('timerText').textContent='00:00';document.getElementById('timerBtn').textContent='Start'}
+
+function keyboardMarkup(){return `<div class="segmented"><button id="osWin" onclick="setOS('windows')">Windows</button><button id="osMac" onclick="setOS('mac')">MacBook</button></div><div class="mod-row" id="mods"></div><div class="segmented"><button class="active" onclick="showKb('alpha',this)">ABC</button><button onclick="showKb('num',this)">123</button><button onclick="showKb('fn',this)">Fn</button><button onclick="toggleNative()">Native</button></div><div id="kbAlpha"></div><div id="kbNum" class="hidden-view"></div><div id="kbFn" class="hidden-view"></div><input id="nativeInput" class="input hidden-view" placeholder="Use phone keyboard..." autocomplete="off">${trackpadMarkup('keyboard')}`;}
+function initKeyboard(){buildMods();buildAlpha();buildNum();buildFn();initTrackpad('keyboard');const n=document.getElementById('nativeInput');let last='';n.addEventListener('input',()=>{const v=n.value;if(v.length>last.length)PhoneBridge.sendText(v.slice(last.length));else for(let i=0;i<last.length-v.length;i++)sendKey('Backspace');last=v;});}
+function setOS(os){keyboardOS=os;localStorage.setItem('phonelink-keyboard-os',os);activeMods.clear();buildMods()}
+function buildMods(){const row=document.getElementById('mods');if(!row)return;const defs=keyboardOS==='mac'?[['Ctrl','ControlLeft'],['Option','AltLeft'],['Cmd','MetaLeft'],['Shift','ShiftLeft']]:[['Ctrl','ControlLeft'],['Alt','AltLeft'],['Win','MetaLeft'],['Shift','ShiftLeft']];row.innerHTML=`<button class="kb-key" onclick="tap('Escape')">Esc</button>`+defs.map(([l,m])=>`<button class="kb-key" data-mod="${m}" onclick="toggleMod(this)">${l}</button>`).join('');document.getElementById('osWin')?.classList.toggle('active',keyboardOS==='windows');document.getElementById('osMac')?.classList.toggle('active',keyboardOS==='mac');}
+function toggleMod(b){const m=b.dataset.mod;activeMods.has(m)?activeMods.delete(m):activeMods.add(m);b.classList.toggle('sticky-active',activeMods.has(m))}
+function tap(k){sendKey(k,[...activeMods]);activeMods.clear();buildMods()}
+function repeatKey(btn,k){let to,int,delay=130;const fire=()=>PhoneBridge.sendKey(k);const stop=()=>{clearTimeout(to);clearInterval(int)};btn.addEventListener('pointerdown',e=>{e.preventDefault();fire();to=setTimeout(()=>{int=setInterval(()=>{fire();delay=Math.max(45,delay-8);clearInterval(int);int=setInterval(fire,delay)},delay)},320)});['pointerup','pointerleave','pointercancel'].forEach(x=>btn.addEventListener(x,stop));}
+function keyButton(label,key){setTimeout(()=>{const b=document.querySelector(`[data-repeat="${key}"]`);if(b)repeatKey(b,key)},0);return `<button class="kb-key" ${key==='Backspace'||key==='Delete'?`data-repeat="${key}"`:`onclick="tap('${key}')"`}>${label}</button>`}
+function buildAlpha(){const rows=[['Q','W','E','R','T','Y','U','I','O','P'],['A','S','D','F','G','H','J','K','L'],['Z','X','C','V','B','N','M']];document.getElementById('kbAlpha').innerHTML=`<div class="kb-row">${keyButton('Caps','CapsLock')}${rows[0].map(k=>keyButton(caps?k:k.toLowerCase(),'Key'+k)).join('')}${keyButton('⌫','Backspace')}</div><div class="kb-row">${keyButton('Tab','Tab')}${rows[1].map(k=>keyButton(caps?k:k.toLowerCase(),'Key'+k)).join('')}${keyButton('⏎','Enter')}</div><div class="kb-row">${rows[2].map(k=>keyButton(caps?k:k.toLowerCase(),'Key'+k)).join('')}</div><div class="kb-row">${keyButton('Space','Space')}</div>`}
+function buildNum(){const rows=[['1','2','3','4','5','6','7','8','9','0'],['!','@','#','$','%','^','&','*','(',')'],['-','_','=','+','[',']','{','}']];document.getElementById('kbNum').innerHTML=rows.map(r=>`<div class="kb-row">${r.map(ch=>`<button class="kb-key" onclick="PhoneBridge.sendText('${ch.replace("'","\\'")}')">${ch}</button>`).join('')}</div>`).join('')}
+function buildFn(){document.getElementById('kbFn').innerHTML=`<div class="tool-row"><button class="kb-key" onclick="tap('Escape')">Esc</button>${Array.from({length:12},(_,i)=>`<button class="kb-key" onclick="tap('F${i+1}')">F${i+1}</button>`).join('')}${keyButton('Del','Delete')}</div>`}
+function showKb(which,btn){['Alpha','Num','Fn'].forEach(x=>document.getElementById('kb'+x).classList.toggle('hidden-view',x.toLowerCase()!==which));btn.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('active'));btn.classList.add('active')}
+function toggleNative(){document.getElementById('nativeInput').classList.toggle('hidden-view');document.getElementById('nativeInput').focus()}
+
+function whiteboardMarkup(){return `
+  <div class="phone-wb-toolbar" id="phoneWhiteboardRoot">
+    <button class="btn btn-sm" data-wb-tool="pen" title="Pen">✎</button>
+    <button class="btn btn-sm" data-wb-tool="eraser" title="Eraser">⌫</button>
+    <button class="btn btn-sm" data-wb-tool="rect" title="Rectangle">▭</button>
+    <button class="btn btn-sm" data-wb-tool="diamond" title="Diamond">◇</button>
+    <button class="btn btn-sm" data-wb-tool="ellipse" title="Ellipse">◯</button>
+    <button class="btn btn-sm" data-wb-tool="line" title="Line">╱</button>
+    <button class="btn btn-sm" data-wb-tool="arrow" title="Arrow">→</button>
+    <button class="btn btn-sm" data-wb-tool="text" title="Text">T</button>
+    <input type="color" class="color-swatch" data-wb-color value="#111111" title="Color">
+    <input type="range" class="slider" data-wb-size min="1" max="14" value="4" style="min-width:90px" title="Size">
+    <button class="btn btn-sm" data-wb-undo title="Undo">↩</button>
+    <button class="btn btn-sm" data-wb-redo title="Redo">↪</button>
+    <button class="btn btn-sm btn-danger" data-wb-clear title="Clear">×</button>
+  </div>
+  <div class="phone-wb-stage"><canvas id="phoneWhiteboardCanvas"></canvas></div>`}
+
+function initWhiteboard(){
+  phoneWhiteboard = PhoneLinkWhiteboard.create({
+    canvas: document.getElementById('phoneWhiteboardCanvas'),
+    root: document.getElementById('phoneWhiteboardRoot'),
+    send: event => PhoneBridge.sendWhiteboard(event)
+  });
+}
+
+function builderMarkup(){return `
+  <div class="mode-row"><button class="active" id="builderEdit" onclick="setBuilderMode('edit')">Edit</button><button id="builderTest" onclick="setBuilderMode('test')">Test</button></div>
+  <div class="builder-toolbar animate-fade">
+    <button class="btn btn-primary" onclick="openAddModal()">+ Add Key</button>
+    <button class="btn" onclick="editSelected()">Edit</button>
+    <button class="btn" onclick="deleteSelected()">Delete</button>
+    <button class="btn" onclick="undoLayout()">↩</button>
+    <button class="btn" onclick="redoLayout()">↪</button>
+    <button class="btn" onclick="clearAll()">Clear</button>
+    <button class="btn" onclick="exportJSON()">Export</button>
+    <button class="btn" onclick="document.getElementById('importFile').click()">Import</button>
+    <button class="btn btn-success" onclick="saveLocal()">Save</button>
+    <input type="file" id="importFile" accept=".json" class="hidden" onchange="importJSON(event)">
+  </div>
+  <div class="builder-area" id="builderArea"></div>
+  <div class="flex justify-center" style="font-size:.72rem;color:var(--text-muted)"><span id="keyCount">Keys: 0</span></div>
+  <div id="builderKeyModal" class="modal-sheet hidden">
+    <div class="modal-sheet-inner">
+      <h3 style="font-size:1rem;font-weight:900;margin-bottom:1rem" id="modalTitle">Add Key</h3>
+      <div class="form-group"><label>Label</label><input type="text" class="input" id="kLabel" placeholder="A" maxlength="10"></div>
+      <div class="form-group"><label>Action Type</label><select class="input" id="kAction"><option value="key">Single Key</option><option value="combo">Modifier + Key</option><option value="text">Text String</option><option value="macro">Macro Sequence</option><option value="mouse">Mouse Click</option></select></div>
+      <div class="form-group"><label>Key / Value</label><input type="text" class="input" id="kValue" placeholder="KeyA or text..."></div>
+      <div class="form-group"><label>Modifiers</label><input type="text" class="input" id="kMods" placeholder="ControlLeft, ShiftLeft"></div>
+      <div class="form-group flex gap-sm"><div style="flex:1"><label>Width</label><input type="number" class="input" id="kWidth" value="60" min="44" max="190"></div><div style="flex:1"><label>Height</label><input type="number" class="input" id="kHeight" value="60" min="44" max="190"></div></div>
+      <div class="form-group flex gap-sm"><div style="flex:1"><label>BG Color</label><input type="color" class="input" id="kBg" value="#4ddcff" style="height:42px;padding:2px"></div><div style="flex:1"><label>Text Color</label><input type="color" class="input" id="kFg" value="#071016" style="height:42px;padding:2px"></div></div>
+      <div class="form-group"><label>Shape</label><div class="shape-picker"><div class="shape-opt active" data-shape="square" onclick="pickShape(this)" style="border-radius:6px">■</div><div class="shape-opt" data-shape="pill" onclick="pickShape(this)" style="border-radius:20px">Pill</div><div class="shape-opt" data-shape="circle" onclick="pickShape(this)" style="border-radius:50%">●</div><div class="shape-opt" data-shape="hex" onclick="pickShape(this)">⬡</div><div class="shape-opt" data-shape="cut" onclick="pickShape(this)" style="border-radius:12px 0 12px 0">◇</div></div></div>
+      <div class="form-group flex gap-2"><label style="display:flex;align-items:center;gap:.4rem;text-transform:none"><input type="checkbox" id="kHold"> Holdable</label><label style="display:flex;align-items:center;gap:.4rem;text-transform:none"><input type="checkbox" id="kRepeat"> Repeat</label></div>
+      <div class="flex gap-sm"><button class="btn btn-primary" onclick="saveKey()">Save</button><button class="btn" onclick="closeModal()">Cancel</button></div>
+    </div>
+  </div>`}
+
+let keys=[], selectedId=null, editingId=null, builderMode='edit', layoutHistory=[], layoutRedoStack=[], chosenShape='square', nextId=1, repeatInterval=null;
+function initBuilder(){try{keys=JSON.parse(localStorage.getItem('pb-custom-kb')||'[]')}catch(e){keys=[]}selectedId=null;editingId=null;builderMode='edit';layoutHistory=[];layoutRedoStack=[];nextId=Math.max(0,...keys.map(k=>k.id||0))+1;renderBuilder()}
+function renderBuilder(){const area=document.getElementById('builderArea');if(!area)return;area.innerHTML='';keys.forEach(k=>{const el=document.createElement('button');el.type='button';el.className='custom-key'+(k.id===selectedId?' selected':'')+(builderMode==='test'?' testing':'');el.dataset.id=k.id;Object.assign(el.style,{left:k.x+'%',top:k.y+'%',width:k.w+'px',height:k.h+'px',backgroundColor:k.bg,color:k.fg,fontSize:Math.max(10,Math.min(k.w,k.h)*.3)+'px'});if(k.shape==='pill')el.style.borderRadius=Math.min(k.w,k.h)/2+'px';else if(k.shape==='circle')el.style.borderRadius='50%';else if(k.shape==='cut')el.style.borderRadius='12px 0 12px 0';else if(k.shape==='hex'){el.style.borderRadius='8px';el.style.clipPath='polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%)'}else el.style.borderRadius='8px';el.textContent=k.label;if(builderMode==='edit'){el.addEventListener('pointerdown',e=>startDragKey(e,k));el.addEventListener('click',()=>selectKey(k.id))}else{el.addEventListener('touchstart',e=>{e.preventDefault();testKeyDown(k)},{passive:false});el.addEventListener('touchend',e=>{e.preventDefault();testKeyUp(k)},{passive:false});el.addEventListener('click',()=>fireKey(k))}area.appendChild(el)});document.getElementById('keyCount').textContent=`Keys: ${keys.length}`;socket.emit('custom-kb-layout',{keys})}
+function setBuilderMode(m){builderMode=m;document.getElementById('builderEdit').classList.toggle('active',m==='edit');document.getElementById('builderTest').classList.toggle('active',m==='test');selectedId=null;renderBuilder()}
+function startDragKey(e,k){if(builderMode!=='edit')return;e.preventDefault();saveHistory();const area=document.getElementById('builderArea'),rect=area.getBoundingClientRect(),cx=e.clientX-rect.left,cy=e.clientY-rect.top,offX=cx-k.x/100*rect.width,offY=cy-k.y/100*rect.height;const move=ev=>{const mx=ev.clientX-rect.left-offX,my=ev.clientY-rect.top-offY;k.x=Math.max(0,Math.min(100-k.w/rect.width*100,mx/rect.width*100));k.y=Math.max(0,Math.min(100-k.h/rect.height*100,my/rect.height*100));renderBuilder()};const up=()=>{document.removeEventListener('pointermove',move);document.removeEventListener('pointerup',up)};document.addEventListener('pointermove',move);document.addEventListener('pointerup',up)}
+function selectKey(id){selectedId=selectedId===id?null:id;renderBuilder()}
+function testKeyDown(k){haptic('medium');fireKey(k);if(k.repeat){repeatInterval=setInterval(()=>fireKey(k),100)}}
+function testKeyUp(){if(repeatInterval){clearInterval(repeatInterval);repeatInterval=null}}
+function fireKey(k){if(k.action==='key')PhoneBridge.sendKey(k.value);else if(k.action==='combo')PhoneBridge.sendKey(k.value,k.mods||[]);else if(k.action==='text')PhoneBridge.sendText(k.value);else if(k.action==='macro')(k.value||'').split(',').map(x=>x.trim()).filter(Boolean).forEach((key,i)=>setTimeout(()=>PhoneBridge.sendKey(key),i*55));else if(k.action==='mouse')PhoneBridge.sendMouseClick(k.value||'left')}
+function openAddModal(){editingId=null;document.getElementById('modalTitle').textContent='Add Key';document.getElementById('kLabel').value='';document.getElementById('kAction').value='key';document.getElementById('kValue').value='';document.getElementById('kMods').value='';document.getElementById('kWidth').value=60;document.getElementById('kHeight').value=60;document.getElementById('kBg').value='#4ddcff';document.getElementById('kFg').value='#071016';document.getElementById('kHold').checked=false;document.getElementById('kRepeat').checked=false;chosenShape='square';updateShapePicker();document.getElementById('builderKeyModal').classList.remove('hidden')}
+function editSelected(){if(!selectedId){Toast.show('Select a key first','info');return}const k=keys.find(k=>k.id===selectedId);if(!k)return;editingId=k.id;document.getElementById('modalTitle').textContent='Edit Key';document.getElementById('kLabel').value=k.label;document.getElementById('kAction').value=k.action;document.getElementById('kValue').value=k.value||'';document.getElementById('kMods').value=(k.mods||[]).join(', ');document.getElementById('kWidth').value=k.w;document.getElementById('kHeight').value=k.h;document.getElementById('kBg').value=k.bg;document.getElementById('kFg').value=k.fg;document.getElementById('kHold').checked=!!k.hold;document.getElementById('kRepeat').checked=!!k.repeat;chosenShape=k.shape||'square';updateShapePicker();document.getElementById('builderKeyModal').classList.remove('hidden')}
+function closeModal(){document.getElementById('builderKeyModal')?.classList.add('hidden')}
+function pickShape(el){chosenShape=el.dataset.shape;updateShapePicker()}
+function updateShapePicker(){document.querySelectorAll('#builderKeyModal .shape-opt').forEach(s=>s.classList.toggle('active',s.dataset.shape===chosenShape))}
+function saveKey(){saveHistory();const data={label:document.getElementById('kLabel').value||'?',action:document.getElementById('kAction').value,value:document.getElementById('kValue').value,mods:document.getElementById('kMods').value.split(',').map(s=>s.trim()).filter(Boolean),w:+document.getElementById('kWidth').value||60,h:+document.getElementById('kHeight').value||60,bg:document.getElementById('kBg').value,fg:document.getElementById('kFg').value,shape:chosenShape,hold:document.getElementById('kHold').checked,repeat:document.getElementById('kRepeat').checked};if(editingId){const k=keys.find(k=>k.id===editingId);if(k)Object.assign(k,data)}else{data.id=nextId++;data.x=5+Math.random()*40;data.y=5+Math.random()*40;keys.push(data)}closeModal();renderBuilder()}
+function deleteSelected(){if(!selectedId)return;saveHistory();keys=keys.filter(k=>k.id!==selectedId);selectedId=null;renderBuilder()}
+function clearAll(){if(!confirm('Remove all keys?'))return;saveHistory();keys=[];selectedId=null;renderBuilder()}
+function saveHistory(){layoutHistory.push(JSON.stringify(keys));layoutRedoStack=[];if(layoutHistory.length>30)layoutHistory.shift()}
+function undoLayout(){if(!layoutHistory.length)return;layoutRedoStack.push(JSON.stringify(keys));keys=JSON.parse(layoutHistory.pop());renderBuilder()}
+function redoLayout(){if(!layoutRedoStack.length)return;layoutHistory.push(JSON.stringify(keys));keys=JSON.parse(layoutRedoStack.pop());renderBuilder()}
+function exportJSON(){const a=document.createElement('a');a.download='custom-keyboard.json';a.href=URL.createObjectURL(new Blob([JSON.stringify(keys,null,2)],{type:'application/json'}));a.click();Toast.show('Exported','success')}
+function importJSON(e){const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=ev=>{try{saveHistory();keys=JSON.parse(ev.target.result);nextId=Math.max(0,...keys.map(k=>k.id||0))+1;renderBuilder();Toast.show('Imported','success')}catch(err){Toast.show('Invalid JSON','error')}};reader.readAsText(file);e.target.value=''}
+function saveLocal(){localStorage.setItem('pb-custom-kb',JSON.stringify(keys));Toast.show('Saved to device','success')}
+</script>
+</body>
+</html>

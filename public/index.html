@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark-galaxy">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PhoneLink – Dashboard</title>
+<meta name="description" content="PhoneLink laptop dashboard – control your PC from your phone">
+<link rel="stylesheet" href="common.css">
+<style>
+  .dash-layout{display:grid;grid-template-columns:300px 1fr;min-height:100vh;gap:0}
+  #landingView{min-height:100vh}
+  .landing{padding:clamp(2rem,5vw,5rem);position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;text-align:center}
+  .landing::before{content:'';position:absolute;inset:0 20%;border-radius:50%;background:linear-gradient(135deg,var(--accent-glow),var(--accent2-glow));filter:blur(80px);opacity:.6;animation:float 7s ease-in-out infinite;pointer-events:none}
+  .landing-copy{position:relative;z-index:1;max-width:900px;margin:0 auto}
+  .landing-kicker{font-family:'JetBrains Mono',monospace;display:inline-flex;align-items:center;gap:.45rem;padding:.45rem .75rem;border-radius:999px;background:none;border:0;color:var(--text-secondary);font-weight:800;font-size:.7rem;text-transform:uppercase;letter-spacing:.3em;margin-bottom:1.5rem}
+  .landing h1{font-family:'Space Grotesk',sans-serif;font-size:clamp(2.5rem,6vw,5.5rem);line-height:1.05;letter-spacing:-.03em;font-weight:800;margin-bottom:1rem}
+  .landing h1 span.highlight{background:none;color:var(--text-secondary);-webkit-text-fill-color:var(--text-secondary);-webkit-background-clip:border-box;background-clip:border-box}
+  .landing p{color:var(--text-secondary);font-size:clamp(1rem,1.5vw,1.25rem);margin:0 auto 2rem;max-width:800px}
+  .glow-text{color:var(--text-primary);-webkit-text-fill-color:var(--text-primary);text-shadow:0 0 15px var(--accent),0 0 30px var(--accent-glow);font-weight:800;position:relative;display:inline-block;animation:textGlowPulse 3s ease-in-out infinite}
+  @keyframes textGlowPulse{0%,100%{text-shadow:0 0 15px var(--accent-glow),0 0 30px var(--accent-glow);opacity:1}50%{text-shadow:0 0 25px var(--accent),0 0 50px var(--accent-glow);opacity:.95}}
+  .try-now{display:inline-block;padding:.9rem 2rem;font-size:1.2rem;font-weight:600;color:white;background:#111a2e;border:1px solid #3b82f6;border-radius:60px;cursor:pointer;position:relative;overflow:hidden;z-index:1;transition:transform .2s ease,box-shadow .2s ease;text-decoration:none;font-family:inherit}
+  .try-now::before{content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(90deg,transparent,#3b82f6,transparent);transition:left .5s ease;z-index:-1}
+  .try-now:hover::before{left:100%}.try-now:hover{transform:scale(1.02);box-shadow:0 0 18px #3b82f6,inset 0 0 8px #3b82f6;border-color:#60a5fa}.try-now:active{transform:scale(.98)}
+  .compare-table{width:100%;max-width:900px;margin:4rem auto 2rem;border-collapse:separate;border-spacing:0;border-radius:var(--radius-lg);overflow:hidden;background:var(--bg-card);border:1px solid var(--border-glass);box-shadow:var(--shadow-lg);text-align:left;backdrop-filter:blur(var(--blur));transition:transform .4s ease,box-shadow .4s ease;font-family:'Space Grotesk',sans-serif}
+  .compare-table:hover{transform:translateY(-5px);box-shadow:0 20px 50px rgba(255,255,255,.05)}
+  .compare-table th,.compare-table td{padding:1.5rem 2rem;border-bottom:1px solid var(--border-glass);font-size:1.15rem;font-weight:600;transition:all .3s ease}
+  .compare-table tbody tr:hover td{background:rgba(255,255,255,.05);color:var(--text-primary)}
+  .compare-table th{background:var(--bg-secondary);font-weight:800;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.1em;font-size:1rem}
+  .compare-table td{color:var(--text-secondary)}
+  .compare-table th:nth-child(2){color:var(--text-primary);font-weight:900;background:rgba(124,58,237,.1)}
+  .compare-table td:nth-child(2){color:var(--text-primary);font-weight:700;background:rgba(124,58,237,.05)}
+  .compare-table tr:last-child td{border-bottom:0}
+  .sidebar{background:var(--bg-secondary);border-right:1px solid var(--border-glass);display:flex;flex-direction:column;padding:1.5rem;gap:1.5rem;overflow-y:auto}
+  .main-content{padding:2rem;overflow-y:auto;display:flex;flex-direction:column;gap:1.5rem}
+  .qr-img{width:180px;height:180px;border-radius:12px;border:2px solid var(--border-glass);padding:6px;background:rgba(0,0,0,.4);image-rendering:pixelated}
+  .mode-btn{width:100%;text-align:left;padding:.8rem 1rem;border-radius:var(--radius-sm);background:var(--bg-glass);border:1px solid var(--border-glass);color:var(--text-secondary);font-weight:600;font-size:.85rem;display:flex;align-items:center;gap:.6rem;transition:all .2s}
+  .mode-btn:hover{background:var(--accent-glow);color:var(--text-primary);border-color:var(--accent)}
+  .mode-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);box-shadow:0 4px 16px var(--accent-glow)}
+  .status-dot{width:8px;height:8px;border-radius:50%;background:var(--danger);flex-shrink:0}
+  .status-dot.online{background:var(--success);animation:pulse 2s infinite}
+  .panel{padding:1.5rem;display:flex;flex-direction:column;gap:1rem}
+  .panel-title{font-size:.95rem;font-weight:700;display:flex;align-items:center;gap:.5rem}
+  .preview-area{min-height:300px;border-radius:var(--radius);background:var(--bg-glass);border:1px solid var(--border-glass);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+  .preview-area canvas{position:absolute;inset:0;width:100%;height:100%}
+  .media-frame{width:100%;border:none;border-radius:var(--radius);min-height:360px;background:#000}
+  .url-bar{display:flex;gap:.5rem}
+  .url-bar input{flex:1}
+  .log-area{max-height:220px;overflow-y:auto;padding:.6rem;background:var(--bg-glass);border-radius:var(--radius-sm);border:1px solid var(--border-glass);font-family:'JetBrains Mono',monospace;font-size:.78rem;color:var(--text-secondary)}
+  .log-entry{padding:.2rem 0;border-bottom:1px solid var(--border-glass);animation:slideIn .2s ease-out}
+  .log-key{color:var(--accent);font-weight:600}
+  .log-time{color:var(--text-muted);font-size:.68rem;margin-left:.4rem}
+  .stat-row{display:flex;gap:1rem;flex-wrap:wrap}
+  .stat-card{flex:1;min-width:120px;padding:1rem;border-radius:var(--radius-sm);background:var(--bg-glass);border:1px solid var(--border-glass);text-align:center}
+  .stat-val{font-size:1.5rem;font-weight:800;color:var(--accent)}
+  .stat-label{font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-top:.2rem}
+  .whiteboard-shell{display:flex;flex-direction:column;gap:.75rem}
+  .whiteboard-toolbar{display:flex;gap:.4rem;align-items:center;flex-wrap:wrap}
+  .whiteboard-toolbar .btn.active{background:var(--accent);color:#071016;border-color:var(--accent)}
+  .whiteboard-stage{width:100%;height:min(70vh,640px);min-height:480px;border-radius:var(--radius);overflow:hidden;background:#fff;border:1px solid var(--border-glass);box-shadow:var(--shadow-lg);position:relative}
+  .whiteboard-stage canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+  @media(max-width:700px){.whiteboard-stage{min-height:360px}}
+  .themes-row{display:flex;gap:.4rem}
+  .slide-laser-stage{width:100%;aspect-ratio:16/9;border-radius:var(--radius);background:linear-gradient(135deg,rgba(255,255,255,.04),rgba(255,255,255,.02));border:1px solid var(--border-glass);position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:.85rem}
+  .slide-laser-stage::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);background-size:40px 40px;opacity:.35}
+  .laptop-laser-dot{position:absolute;width:22px;height:22px;border-radius:50%;background:#ff1d2d;box-shadow:0 0 14px 5px #ff1d2d,0 0 42px 12px rgba(255,29,45,.5);transform:translate(-50%,-50%);opacity:0;pointer-events:none;z-index:2;transition:opacity .12s}
+  .laptop-laser-dot.active{opacity:1}
+  .screen-laser-dot{position:fixed;width:30px;height:30px;border-radius:50%;background:#ff1028;box-shadow:0 0 16px 6px #ff1028,0 0 58px 18px rgba(255,16,40,.45);transform:translate(-50%,-50%);opacity:0;pointer-events:none;z-index:5000;transition:opacity .1s}
+  .screen-laser-dot.active{opacity:1}
+  .dash-settings-btn{width:100%;margin-top:.8rem}
+  @media(max-width:900px){.compare-table{display:block;overflow-x:auto}.dash-layout{grid-template-columns:1fr}.sidebar{border-right:none;border-bottom:1px solid var(--border-glass)}}
+</style>
+</head>
+<body>
+<div id="landingView">
+  <section class="landing" id="home">
+    <div class="landing-copy animate-fade">
+      <div class="landing-kicker">Empower Your Classroom with Seamless Control</div>
+      <h1><span class="glow-text">PhoneLink</span> makes your phone a <span class="highlight">magic wand</span>.</h1>
+      <p>Whether you are presenting slides, organizing a collaborative whiteboard session, or controlling media for your students, PhoneLink turns your smartphone into a powerful controller for your laptop or smartboard.</p>
+      <button class="try-now" style="margin-bottom:2rem" onclick="openDashboard()">Try Now</button>
+    </div>
+  </section>
+
+  <div class="swirl-container" id="featuresSwirl">
+    <div class="swirl-sticky">
+      <div style="position:absolute;width:600px;height:600px;background:radial-gradient(circle,rgba(255,255,255,.08) 0%,transparent 60%);pointer-events:none;z-index:-1;transform:translateZ(-500px)"></div>
+      <div class="swirl-card" id="swirl-0"><div class="s-icon">▭</div><h3>Presentation</h3><p>Control lesson slides seamlessly with next/prev and laser pointer.</p></div>
+      <div class="swirl-card" id="swirl-1"><div class="s-icon">□</div><h3>Whiteboard</h3><p>Instantly sketch and brainstorm with students on a shared zero-lag canvas.</p></div>
+      <div class="swirl-card" id="swirl-2"><div class="s-icon">♪</div><h3>Media</h3><p>Control educational videos and audio playback from anywhere in the room.</p></div>
+      <div class="swirl-card" id="swirl-3"><div class="s-icon">⌗</div><h3>Keyboard & Mouse</h3><p>Remote typing and smooth cursor control for quick laptop navigation.</p></div>
+      <div class="swirl-card" id="swirl-4"><div class="s-icon">◇</div><h3>Custom Keys</h3><p>Create specific macro buttons to automate your most-used classroom apps.</p></div>
+    </div>
+  </div>
+
+  <section class="landing" style="padding-top:0">
+    <h2 class="title" style="margin-bottom:1rem">Why <span class="glow-text">PhoneLink</span> is the best choice</h2>
+    <table class="compare-table animate-slide">
+      <thead><tr><th>Feature</th><th>PhoneLink</th><th>Traditional Clickers</th><th>Screen Mirror Apps</th></tr></thead>
+      <tbody>
+        <tr><td>No Installation Needed</td><td>Browser based</td><td>USB Dongle</td><td>Store App</td></tr>
+        <tr><td>Multi-Mode Control</td><td>5 Modes</td><td>Click only</td><td>View only</td></tr>
+        <tr><td>Interactive Whiteboard</td><td>Advanced</td><td>None</td><td>Limited</td></tr>
+        <tr><td>Latency</td><td>Ultra-Low</td><td>Instant</td><td>High</td></tr>
+        <tr><td>Cost</td><td style="font-weight:900;color:var(--text-primary)">FREE</td><td>$50+</td><td>Subscription</td></tr>
+      </tbody>
+    </table>
+    <button class="try-now" style="margin-top:3rem" onclick="openDashboard()">Try Now</button>
+  </section>
+</div>
+
+<div class="dash-layout hidden" id="dashboard">
+  <!-- Sidebar -->
+  <aside class="sidebar animate-fade">
+    <div class="text-center">
+      <div class="title" style="font-size:1.4rem">PhoneLink</div>
+      <p class="subtitle" style="font-size:.78rem;margin-top:.3rem">Remote Control Suite</p>
+      <button class="btn btn-sm dash-settings-btn" onclick="openDashboardSettings()">Settings</button>
+    </div>
+
+    <!-- QR Code -->
+    <div class="glass text-center" style="padding:1.2rem;border-radius:var(--radius)">
+      <div class="label" style="margin-bottom:.6rem">Scan to Connect</div>
+      <img id="qrImg" class="qr-img" src="" alt="QR Code" style="margin:0 auto">
+      <div id="sessionCode" class="session-id" style="margin-top:.6rem;font-size:1rem">----</div>
+      <p style="margin-top:.45rem;font-size:.72rem;line-height:1.45;color:var(--text-muted)">Keep your phone and laptop on the same Wi-Fi or hotspot for the most reliable connection.</p>
+      <button class="btn btn-sm" style="margin-top:.6rem" onclick="regenerateSession()">↻ New Session</button>
+    </div>
+
+    <!-- Status -->
+    <div class="glass" style="padding:1rem;border-radius:var(--radius)">
+      <div class="label">Connection</div>
+      <div class="flex items-center gap-sm" style="margin-top:.5rem">
+        <span id="statusDot" class="status-dot"></span>
+        <span id="statusText" style="font-size:.85rem;font-weight:600">Waiting…</span>
+      </div>
+      <div class="flex justify-between" style="margin-top:.5rem;font-size:.75rem;color:var(--text-muted)">
+        <span>RTT: <span id="rttVal">--</span>ms</span>
+        <span id="rtcStatus">WebRTC: waiting</span>
+      </div>
+    </div>
+
+    <!-- Mode Selector -->
+    <div>
+      <div class="label" style="margin-bottom:.5rem">Mode</div>
+      <div class="flex-col gap-xs">
+        <button class="mode-btn active" data-mode="presentation" onclick="switchMode('presentation')">▭ Presentation</button>
+        <button class="mode-btn" data-mode="media" onclick="switchMode('media')">♪ Media Remote</button>
+        <button class="mode-btn" data-mode="keyboard" onclick="switchMode('keyboard')">⌗ Keyboard & Mouse</button>
+        <button class="mode-btn" data-mode="whiteboard" onclick="switchMode('whiteboard')">□ Whiteboard</button>
+        <button class="mode-btn" data-mode="keyboard-builder" onclick="switchMode('keyboard-builder')">◇ Custom Keys</button>
+      </div>
+    </div>
+
+    <!-- nut-js status -->
+    <div id="nutWarning" class="hidden" style="padding:.6rem;border-radius:var(--radius-xs);background:rgba(255,165,2,.1);border:1px solid rgba(255,165,2,.2);font-size:.75rem;color:var(--warning)">
+      ! nut-js not installed. Input forwarded to dashboard only.
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <!-- Stats Row -->
+    <div class="stat-row animate-fade">
+      <div class="stat-card glass"><div class="stat-val" id="currentMode">Presentation</div><div class="stat-label" style="font-size:.6rem">Active Mode</div></div>
+    </div>
+
+    <!-- Presentation Panel -->
+    <div id="panelPresentation" class="glass panel animate-slide">
+      <div class="panel-title">▭ Presentation Mode</div>
+      <p style="font-size:.85rem;color:var(--text-secondary)">Use the phone remote for slide navigation, timer, Esc, Space, and a presentation mousepad.</p>
+    </div>
+
+    <!-- Media Panel -->
+    <div id="panelMedia" class="glass panel animate-slide hidden">
+      <div class="panel-title">♪ Media Mode</div>
+      <div class="url-bar">
+        <input type="url" class="input" id="mediaUrl" placeholder="Paste YouTube / media URL…">
+        <button class="btn btn-primary btn-sm" onclick="loadMedia()">Load</button>
+        <button class="btn btn-sm" onclick="toggleFullscreenMedia()">⛶</button>
+      </div>
+      <div style="position:relative;border-radius:var(--radius);overflow:hidden;background:#000">
+        <iframe id="mediaFrame" class="media-frame" src="" allow="autoplay;fullscreen" allowfullscreen></iframe>
+      </div>
+    </div>
+
+    <!-- Keyboard Panel -->
+    <div id="panelKeyboard" class="glass panel animate-slide hidden">
+      <div class="panel-title">⌗ Keyboard & Mouse</div>
+      <p style="font-size:.85rem;color:var(--text-secondary)">Phone acts as wireless keyboard and trackpad. Input appears in monitor below.</p>
+    </div>
+
+    <!-- Whiteboard Panel -->
+    <div id="panelWhiteboard" class="glass panel animate-slide hidden">
+      <div class="panel-title">□ Whiteboard</div>
+      <div class="whiteboard-shell" id="laptopWhiteboardRoot">
+        <div class="whiteboard-toolbar toolbar">
+          <button class="btn btn-sm" data-wb-tool="pen" title="Pen">✎</button>
+          <button class="btn btn-sm" data-wb-tool="eraser" title="Eraser">⌫</button>
+          <button class="btn btn-sm" data-wb-tool="rect" title="Rectangle">▭</button>
+          <button class="btn btn-sm" data-wb-tool="diamond" title="Diamond">◇</button>
+          <button class="btn btn-sm" data-wb-tool="ellipse" title="Ellipse">◯</button>
+          <button class="btn btn-sm" data-wb-tool="line" title="Line">╱</button>
+          <button class="btn btn-sm" data-wb-tool="arrow" title="Arrow">→</button>
+          <button class="btn btn-sm" data-wb-tool="text" title="Text">T</button>
+          <input type="color" class="color-swatch" data-wb-color value="#111111" title="Color">
+          <input type="range" class="slider" data-wb-size min="1" max="14" value="4" style="max-width:120px" title="Stroke size">
+          <button class="btn btn-sm" data-wb-undo title="Undo">↩</button>
+          <button class="btn btn-sm" data-wb-redo title="Redo">↪</button>
+          <button class="btn btn-sm btn-danger" data-wb-clear title="Clear">×</button>
+          <button class="btn btn-sm btn-success" data-wb-export title="Export PNG">⇩</button>
+        </div>
+        <div class="whiteboard-stage"><canvas id="laptopWhiteboardCanvas"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Custom Keyboard Panel -->
+    <div id="panelKeyboardBuilder" class="glass panel animate-slide hidden">
+      <div class="panel-title">◇ Custom Keyboard Builder</div>
+      <p style="font-size:.85rem;color:var(--text-secondary)">Phone-side builder. Layout preview appears here when connected.</p>
+      <div class="preview-area" id="customKbPreview"><span style="color:var(--text-muted)">Waiting for layout…</span></div>
+    </div>
+
+  </main>
+</div>
+<div class="screen-laser-dot" id="screenLaserDot"></div>
+
+<div class="modal-overlay" id="dashboardSettings">
+  <div class="modal settings-modal">
+    <div class="modal-header">
+      <h2>Settings</h2>
+      <button class="guide-close" type="button" onclick="closeDashboardSettings()">✕</button>
+    </div>
+    <div class="settings-section">
+      <div class="label">Themes</div>
+      <div class="theme-grid" id="dashboardThemeGrid"></div>
+    </div>
+    <div class="settings-section">
+      <label class="setting-row">
+        <span><strong>Vibration</strong><small>Applied on mobile button taps.</small></span>
+        <input type="checkbox" data-vibration-toggle checked onchange="setVibrationEnabled(this.checked)">
+      </label>
+    </div>
+    <div class="settings-section">
+      <div class="label">Pointer Speed</div>
+      <label class="speed-setting">
+        <span>Keyboard mousepad</span>
+        <input type="range" class="slider" min="1" max="10" step="0.5" data-speed-control="keyboard" oninput="setControlSpeed('keyboard', this.value)">
+      </label>
+      <label class="speed-setting">
+        <span>Presentation mousepad</span>
+        <input type="range" class="slider" min="1" max="10" step="0.5" data-speed-control="presentation" oninput="setControlSpeed('presentation', this.value)">
+      </label>
+    </div>
+    <div class="settings-section">
+      <div class="stat-row">
+        <div class="stat-card"><div class="stat-val" id="sessionTime">00:00</div><div class="stat-label">Session</div></div>
+        <div class="stat-card"><div class="stat-val" id="inputCount">0</div><div class="stat-label">Inputs</div></div>
+      </div>
+      <div class="log-area" id="inputLog" style="margin-top:.8rem"><div style="color:var(--text-muted)">Waiting for input…</div></div>
+    </div>
+    <div class="settings-section settings-actions">
+      <button class="btn btn-primary" onclick="Guide.open(); closeDashboardSettings()">Guide</button>
+      <button class="btn" onclick="requestAppFullscreen()">⛶ Fullscreen</button>
+    </div>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="common.js"></script>
+<script src="whiteboard-core.js"></script>
+<script>
+/* ── State ──────────────────────────────────────────────── */
+let currentMode = 'presentation';
+let inputCounter = 0;
+let sessionStart = Date.now();
+let sessionTimer;
+let laptopWhiteboard;
+
+function openDashboard() {
+  document.getElementById('landingView')?.classList.add('hidden');
+  document.getElementById('dashboard')?.classList.remove('hidden');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function updateFeatureSwirl() {
+  const sw = document.getElementById('featuresSwirl');
+  if (!sw) return;
+  const rect = sw.getBoundingClientRect();
+  const sectionHeight = rect.height - window.innerHeight;
+  const rawProgress = sectionHeight <= 0 ? 0 : -rect.top / sectionHeight;
+  const progress = Math.max(0, Math.min(1, rawProgress));
+  const hold = 0.2;
+  const adjusted = progress < hold ? 0 : progress > 1 - hold ? 1 : (progress - hold) / (1 - 2 * hold);
+  const spiralAngle = adjusted * (4 / 5) * Math.PI * 2;
+
+  for (let i = 0; i < 5; i += 1) {
+    const card = document.getElementById(`swirl-${i}`);
+    if (!card) continue;
+    const currentAngle = (i / 5) * Math.PI * 2 - spiralAngle;
+    const radius = 450;
+    const x = Math.sin(currentAngle) * radius;
+    const z = Math.cos(currentAngle) * radius - radius;
+    const y = currentAngle * 180;
+    const opacity = Math.max(0, 1 - Math.abs(currentAngle) / 1.2);
+    const glow = Math.pow(Math.max(0, 1 - Math.abs(currentAngle) / 0.8), 3);
+    card.style.opacity = opacity;
+    card.style.transform = `translate3d(${x}px, ${y}px, ${z}px) rotateY(${currentAngle * 180 / Math.PI}deg)`;
+    card.style.zIndex = Math.round((Math.cos(currentAngle) + 1) * 100);
+    card.style.visibility = opacity > 0 ? 'visible' : 'hidden';
+    card.style.boxShadow = glow ? `0 0 ${40 * glow}px var(--accent-glow), inset 0 0 ${20 * glow}px var(--accent-glow)` : '';
+  }
+}
+window.addEventListener('scroll', updateFeatureSwirl, { passive: true });
+window.addEventListener('load', updateFeatureSwirl);
+
+/* ── Init ───────────────────────────────────────────────── */
+async function init() {
+  const sid = await PhoneBridge.createSession();
+  document.getElementById('sessionCode').textContent = sid;
+  PhoneBridge.joinAsLaptop(sid);
+  await loadQR(sid, currentMode);
+  await PhoneBridge.setupWebRTC(false);
+  checkNut();
+  startSessionTimer();
+  initWhiteboard();
+  initLaptopGuide();
+}
+
+async function loadQR(sid, mode) {
+  try {
+    const data = await PhoneBridge.getQR(sid, 'controller');
+    document.getElementById('qrImg').src = data.qr;
+  } catch(e) { console.error('QR error', e); }
+}
+
+async function regenerateSession() {
+  const sid = await PhoneBridge.createSession();
+  document.getElementById('sessionCode').textContent = sid;
+  PhoneBridge.joinAsLaptop(sid);
+  await loadQR(sid, currentMode);
+  Toast.show('New session created', 'success');
+}
+
+function checkNut() {
+  fetch('/api/nut-status').then(r=>r.json()).then(d=>{
+    if(!d.available) document.getElementById('nutWarning').classList.remove('hidden');
+  });
+}
+
+function startSessionTimer() {
+  sessionTimer = setInterval(()=>{
+    const elapsed = Math.floor((Date.now()-sessionStart)/1000);
+    document.getElementById('sessionTime').textContent = formatTime(elapsed);
+  },1000);
+}
+
+/* ── Mode Switching ─────────────────────────────────────── */
+function switchMode(mode, broadcast = true) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-btn').forEach(b=>b.classList.toggle('active', b.dataset.mode===mode));
+  document.querySelectorAll('[id^="panel"]').forEach(p=>p.classList.add('hidden'));
+  const panelMap = {presentation:'panelPresentation',media:'panelMedia',keyboard:'panelKeyboard',whiteboard:'panelWhiteboard','keyboard-builder':'panelKeyboardBuilder'};
+  const panel = document.getElementById(panelMap[mode]);
+  if(panel) panel.classList.remove('hidden');
+  document.getElementById('currentMode').textContent = mode.charAt(0).toUpperCase()+mode.slice(1);
+  if (broadcast) socket.emit('mode-change',{mode});
+  if(PhoneBridge.sessionId) loadQR(PhoneBridge.sessionId, mode);
+  if(mode === 'whiteboard') setTimeout(()=>laptopWhiteboard?.resize(),100);
+}
+
+socket.on('mode-change', data => {
+  const mode = data?.mode === 'builder' ? 'keyboard-builder' : data?.mode;
+  if (!mode || mode === currentMode) return;
+  switchMode(mode, false);
+  Toast.show(`Switched to ${mode === 'keyboard-builder' ? 'Custom Keys' : mode}`, 'info', 1800);
+});
+
+/* ── Media ──────────────────────────────────────────────── */
+function loadMedia() {
+  let url = document.getElementById('mediaUrl').value.trim();
+  if(!url) return;
+  if(url.includes('youtube.com/watch')) url = url.replace('watch?v=','embed/');
+  else if(url.includes('youtu.be/')) url = 'https://www.youtube.com/embed/'+url.split('youtu.be/')[1];
+  document.getElementById('mediaFrame').src = url;
+}
+function toggleFullscreenMedia() {
+  const f = document.getElementById('mediaFrame');
+  if(f.requestFullscreen) f.requestFullscreen();
+}
+/* ── Input Logging ──────────────────────────────────────── */
+function logInput(type, detail) {
+  inputCounter++;
+  document.getElementById('inputCount').textContent = inputCounter;
+  const log = document.getElementById('inputLog');
+  if(inputCounter===1) log.innerHTML='';
+  const entry = document.createElement('div');
+  entry.className = 'log-entry';
+  const time = new Date().toLocaleTimeString();
+  entry.innerHTML = `<span class="log-key">${type}</span> ${detail} <span class="log-time">${time}</span>`;
+  log.prepend(entry);
+  if(log.children.length > 100) log.lastChild.remove();
+}
+
+socket.on('key-input', d => logInput('KEY', d.key + (d.modifiers?.length ? ' +'+d.modifiers.join('+') : '')));
+socket.on('text-input', d => logInput('TEXT', d.text));
+socket.on('mouse-move', d => logInput('MOVE', `dx:${d.dx?.toFixed(1)} dy:${d.dy?.toFixed(1)}`));
+socket.on('mouse-click', d => logInput('CLICK', d.button));
+socket.on('mouse-scroll', d => logInput('SCROLL', `${d.dx},${d.dy}`));
+
+document.addEventListener('datachannel-message', e => {
+  const raw = e.detail;
+  if(raw instanceof ArrayBuffer) {
+    const f = new Float32Array(raw);
+    logInput('RTC-MOVE', `dx:${f[0]?.toFixed(1)} dy:${f[1]?.toFixed(1)}`);
+    socket.emit('mouse-move', { dx: f[0] || 0, dy: f[1] || 0 });
+  } else {
+    try {
+      const d = JSON.parse(raw);
+      if(d.type==='key') { logInput('RTC-KEY', d.key); socket.emit('key-input',d); }
+      else if(d.type==='click') { logInput('RTC-CLICK', d.button); socket.emit('mouse-click',d); }
+      else if(d.type==='scroll') { logInput('RTC-SCROLL', `${d.dx},${d.dy}`); socket.emit('mouse-scroll',d); }
+      else if(d.type==='text') { logInput('RTC-TEXT', d.text); socket.emit('text-input',d); }
+      else if(d.type==='wb') { laptopWhiteboard?.receive(d.event); }
+    } catch(ex){}
+  }
+});
+
+socket.on('wb-event', event => laptopWhiteboard?.receive(event));
+
+socket.on('laser-pointer', d => {
+  const dot = document.getElementById('laptopLaserDot');
+  const screenDot = document.getElementById('screenLaserDot');
+  const stage = document.getElementById('slideLaserStage');
+  if (!dot || !stage || !screenDot) return;
+  dot.classList.toggle('active', !!d.active);
+  screenDot.classList.toggle('active', !!d.active);
+  if (!d.active) return;
+  const x = Math.max(0, Math.min(1, d.x ?? 0.5));
+  const y = Math.max(0, Math.min(1, d.y ?? 0.5));
+  dot.style.left = (x * 100) + '%';
+  dot.style.top = (y * 100) + '%';
+  screenDot.style.left = (x * 100) + 'vw';
+  screenDot.style.top = (y * 100) + 'vh';
+});
+
+/* ── Connection Status ──────────────────────────────────── */
+socket.on('peer-connected', d => {
+  document.getElementById('statusDot').classList.add('online');
+  document.getElementById('statusText').textContent = `Phone connected`;
+  Toast.show('Phone connected!', 'success');
+});
+socket.on('peer-disconnected', d => {
+  document.getElementById('statusDot').classList.remove('online');
+  document.getElementById('statusText').textContent = 'Disconnected';
+  Toast.show('Phone disconnected', 'warning');
+});
+document.addEventListener('rtt-update', e => { document.getElementById('rttVal').textContent = e.detail; });
+document.addEventListener('rtc-state', e => {
+  const s = e.detail;
+  document.getElementById('rtcStatus').textContent = 'WebRTC: '+(s==='connected'?'connected':'waiting');
+});
+
+function initWhiteboard(){
+  laptopWhiteboard = PhoneLinkWhiteboard.create({
+    canvas: document.getElementById('laptopWhiteboardCanvas'),
+    root: document.getElementById('laptopWhiteboardRoot'),
+    send: event => PhoneBridge.sendWhiteboard(event)
+  });
+}
+
+function openDashboardSettings(){
+  const grid = document.getElementById('dashboardThemeGrid');
+  if (grid && !grid.children.length) {
+    grid.innerHTML = ThemeManager.themes.map(theme => `<button class="theme-chip" data-theme="${theme}" onclick="ThemeManager.apply('${theme}')">${ThemeManager.labels[theme]}</button>`).join('');
+  }
+  document.getElementById('dashboardSettings').classList.add('active');
+  ThemeManager.apply(ThemeManager.current, false);
+  document.querySelectorAll('[data-vibration-toggle]').forEach(el => { el.checked = localStorage.getItem('phonelink-vibrate') !== 'off'; });
+  document.querySelectorAll('[data-speed-control="keyboard"]').forEach(el => { el.value = getControlSpeed('keyboard'); });
+  document.querySelectorAll('[data-speed-control="presentation"]').forEach(el => { el.value = getControlSpeed('presentation'); });
+}
+function closeDashboardSettings(){document.getElementById('dashboardSettings').classList.remove('active');}
+
+function initLaptopGuide() {
+  Guide.init([
+    { icon: 'PL', title: 'PhoneLink Dashboard', description: 'This laptop page creates the session, shows the QR code, and receives input from the phone.' },
+    { icon: 'QR', title: 'QR Pairing', description: 'Scan the QR code with your phone. Use New Session if you want to discard the old connection and generate a fresh code.' },
+    { icon: '▭', title: 'Presentation Mode', description: 'Use the phone for Previous, Next, Esc, Space, a timer, and a presentation mousepad. Pointer speed is configured in Settings.' },
+    { icon: '♪', title: 'Media Remote', description: 'Control play/pause, previous/next track, mute, volume, and five-second seek controls from the phone.' },
+    { icon: '⌗', title: 'Keyboard & Mouse', description: 'Use Windows or Mac keyboard layouts, sticky modifiers, Fn/Esc keys, native phone typing, trackpad movement, scrolling, and mouse clicks.' },
+    { icon: '□', title: 'Whiteboard', description: 'The built-in board draws directly from the phone over WebRTC for near-instant strokes. Tools include pen, eraser, shapes, arrows, text, undo, redo, clear, and export.' },
+    { icon: '◇', title: 'Keyboard Builder', description: 'Build custom key panels with labels, colors, shapes, single keys, modifier combos, text strings, mouse actions, and macros. Layouts appear in the dashboard preview.' },
+    { icon: 'S', title: 'Settings', description: 'Settings include themes, fullscreen, vibration, mouse speed controls, input count, the input monitor, and this Guide.' }
+  ]);
+}
+
+/* ── Custom Keyboard preview ────────────────────────────── */
+socket.on('custom-kb-layout', d => {
+  const preview = document.getElementById('customKbPreview');
+  preview.innerHTML = '<div style="padding:1rem;font-size:.8rem;color:var(--text-secondary)">Layout received: '+d.keys?.length+' keys</div>';
+});
+
+/* ── Start ──────────────────────────────────────────────── */
+init();
+</script>
+</body>
+</html>
