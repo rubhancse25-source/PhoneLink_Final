@@ -240,7 +240,6 @@ html,body{
     <button class="tb" data-wb-clear title="Clear all" style="color:#ef4444">×</button>
     <button class="tb" data-wb-export title="Export PNG" style="color:#22c55e">⬇</button>
     <button class="tb" type="button" onclick="requestAppFullscreen(document.getElementById('wbRoot'))" title="Fullscreen">⛶</button>
-    <button class="tb" data-wb-reset title="Reset view">⊕</button>
   </div>
 
   <!-- Canvas -->
@@ -265,9 +264,6 @@ html,body{
       <span id="wbConnLabel">Offline</span>
     </div>
     <span class="wb-zoom-label" data-wb-zoom>100%</span>
-    <div style="display:flex;gap:4px">
-      <button class="tb" style="width:30px;height:30px;font-size:13px" onclick="wb?.resetView()">↺</button>
-    </div>
   </div>
 
   <!-- Brush size preview -->
@@ -403,7 +399,7 @@ socket.on('theme-change', d => ThemeManager.apply(d.theme, false));
 Guide.init([
   { icon: '□', title: 'Whiteboard', description: 'Draw on your phone and see it appear instantly on the laptop over the local network.' },
   { icon: 'P', title: 'Drawing Tools', description: '<b>Pen</b> — freehand smooth strokes<br><b>Shapes</b> — rect, ellipse, diamond, line, arrow<br><b>Text</b> — tap to place inline text<br><b>Eraser</b> — truly removes strokes and objects' },
-  { icon: '+', title: 'Zoom & Pan', description: '<b>Pinch</b> with two fingers to zoom. <b>Hand tool</b> or two-finger drag to pan. <b>Reset</b> button returns to 100%.' },
+  { icon: '+', title: 'Zoom & Pan', description: '<b>Pinch</b> with two fingers to zoom. <b>Hand tool</b> or two-finger drag to pan within the board boundary.' },
   { icon: '↯', title: 'Low Latency', description: 'All strokes are drawn locally first, then synced over WebRTC on your local network.' },
   { icon: '↓', title: 'Export & Clear', description: 'Tap the download button to export as PNG. Tap clear to remove the board after confirmation. Undo/redo keeps your drawing history.' },
 ]);

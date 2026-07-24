@@ -654,10 +654,42 @@
       emit('clear', null); markDirty();
     }
     function exportPNG() {
-      const link = document.createElement('a');
-      link.download = 'phonelink-whiteboard.png';
-      link.href = canvas.toDataURL('image/png', 0.95);
-      link.click();
+      const dataUrl = canvas.toDataURL('image/png', 0.95);
+      showPngPreview(dataUrl);
+    }
+    function showPngPreview(dataUrl) {
+      options.root?.querySelector('.wb-export-preview')?.remove();
+      const host = document.fullscreenElement || document.webkitFullscreenElement || options.root || document.body;
+      const overlay = document.createElement('div');
+      overlay.className = 'wb-export-preview';
+      overlay.style.cssText = [
+        'position:fixed',
+        'inset:0',
+        'z-index:10000',
+        'display:flex',
+        'align-items:center',
+        'justify-content:center',
+        'padding:18px',
+        'background:rgba(8,12,20,.78)',
+        'backdrop-filter:blur(14px)',
+        'pointer-events:auto'
+      ].join(';');
+      overlay.innerHTML = `
+        <div style="width:min(94vw,760px);max-height:92vh;display:flex;flex-direction:column;gap:10px;padding:12px;border-radius:18px;background:#fff;color:#111;box-shadow:0 24px 80px rgba(0,0,0,.35)">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+            <strong style="font:800 14px Inter,system-ui,sans-serif">Whiteboard PNG</strong>
+            <button type="button" data-wb-export-close style="border:0;border-radius:999px;background:#111;color:#fff;padding:8px 12px;font:800 12px Inter,system-ui,sans-serif">Close</button>
+          </div>
+          <div style="max-height:68vh;overflow:auto;border:1px solid #ddd;border-radius:12px;background:#f7f7f7">
+            <img src="${dataUrl}" alt="Whiteboard PNG preview" style="display:block;width:100%;height:auto;touch-action:auto;-webkit-user-select:auto;user-select:auto">
+          </div>
+          <p style="margin:0;color:#444;font:600 12px/1.45 Inter,system-ui,sans-serif">Long-press the image and choose Save Image. This keeps PhoneLink in fullscreen and avoids the browser download bug.</p>
+        </div>
+      `;
+      overlay.addEventListener('click', e => {
+        if (e.target === overlay || e.target.closest('[data-wb-export-close]')) overlay.remove();
+      });
+      host.appendChild(overlay);
     }
     function resetView() {
       S.zoom = 1; S.panX = 0; S.panY = 0;

@@ -25,7 +25,9 @@ const PhoneBridge = {
   /** Create a new session (laptop side) */
   async createSession() {
     const res = await fetch('/api/session/create');
+    if (!res.ok) throw new Error(`Session create failed (${res.status})`);
     const data = await res.json();
+    if (!data.sessionId) throw new Error('Session create response missing sessionId');
     this.sessionId = data.sessionId;
     return data.sessionId;
   },
@@ -62,7 +64,10 @@ const PhoneBridge = {
   /** Get QR data for a specific mode */
   async getQR(sessionId, mode = 'presentation') {
     const res = await fetch(`/api/qr-url/${sessionId}/${mode}`);
-    return res.json();
+    if (!res.ok) throw new Error(`QR generation failed (${res.status})`);
+    const data = await res.json();
+    if (!data.qr) throw new Error('QR response missing image data');
+    return data;
   },
 
   /* ── WebRTC Setup ─────────────────────────────────────────── */
@@ -340,8 +345,20 @@ function setControlSpeed(kind, value) {
 function requestAppFullscreen(target = document.documentElement) {
   haptic('light');
   const el = target || document.documentElement;
-  if (!document.fullscreenElement && el.requestFullscreen) el.requestFullscreen();
-  else if (document.exitFullscreen) document.exitFullscreen();
+  const active = document.fullscreenElement || document.webkitFullscreenElement;
+  const request = el.requestFullscreen || el.webkitRequestFullscreen;
+  const exit = document.exitFullscreen || document.webkitExitFullscreen;
+  if (!active && request) {
+    const result = request.call(el);
+    if (result?.catch) result.catch(() => {});
+  } else if (active && active !== el && exit) {
+    const result = exit.call(document);
+    if (result?.finally) result.finally(() => setTimeout(() => request?.call(el), 80));
+    else setTimeout(() => request?.call(el), 80);
+  } else if (active === el && exit) {
+    const result = exit.call(document);
+    if (result?.catch) result.catch(() => {});
+  }
 }
 
 function addFullscreenControl() {

@@ -114,7 +114,7 @@
         <tr><td>Multi-Mode Control</td><td>5 Modes</td><td>Click only</td><td>View only</td></tr>
         <tr><td>Interactive Whiteboard</td><td>Advanced</td><td>None</td><td>Limited</td></tr>
         <tr><td>Latency</td><td>Ultra-Low</td><td>Instant</td><td>High</td></tr>
-        <tr><td>Cost</td><td style="font-weight:900;color:var(--text-primary)">FREE</td><td>$50+</td><td>Subscription</td></tr>
+        <tr><td>Cost</td><td style="font-weight:900;color:var(--text-primary)">FREE</td><td>$20+</td><td>Subscription</td></tr>
       </tbody>
     </table>
     <button class="try-now" style="margin-top:3rem" onclick="openDashboard()">Try Now</button>
@@ -343,12 +343,16 @@ window.addEventListener('load', updateFeatureSwirl);
 
 /* ── Init ───────────────────────────────────────────────── */
 async function init() {
-  const sid = await PhoneBridge.createSession();
-  document.getElementById('sessionCode').textContent = sid;
-  PhoneBridge.joinAsLaptop(sid);
-  await loadQR(sid, currentMode);
-  await PhoneBridge.setupWebRTC(false);
-  checkNut();
+  try {
+    await createAndDisplaySession();
+  } catch (error) {
+    console.error('Session init error', error);
+    document.getElementById('sessionCode').textContent = 'Failed';
+    document.getElementById('qrImg').removeAttribute('src');
+    Toast.show('Could not create session. Check that the server is running.', 'error', 5000);
+  }
+  try { await PhoneBridge.setupWebRTC(false); } catch (error) { console.warn('WebRTC setup failed', error); }
+  try { checkNut(); } catch (error) { console.warn('nut status check failed', error); }
   startSessionTimer();
   initWhiteboard();
   initLaptopGuide();
@@ -358,15 +362,36 @@ async function loadQR(sid, mode) {
   try {
     const data = await PhoneBridge.getQR(sid, 'controller');
     document.getElementById('qrImg').src = data.qr;
-  } catch(e) { console.error('QR error', e); }
+    return data;
+  } catch(e) {
+    console.warn('Mode QR error, trying default QR endpoint', e);
+    const res = await fetch(`/api/qr/${sid}`);
+    if (!res.ok) throw new Error(`Default QR generation failed (${res.status})`);
+    const data = await res.json();
+    if (!data.qr) throw new Error('Default QR response missing image data');
+    document.getElementById('qrImg').src = data.qr;
+    return data;
+  }
 }
 
-async function regenerateSession() {
+async function createAndDisplaySession() {
+  document.getElementById('sessionCode').textContent = 'Creating...';
   const sid = await PhoneBridge.createSession();
   document.getElementById('sessionCode').textContent = sid;
   PhoneBridge.joinAsLaptop(sid);
   await loadQR(sid, currentMode);
-  Toast.show('New session created', 'success');
+  return sid;
+}
+
+async function regenerateSession() {
+  try {
+    await createAndDisplaySession();
+    Toast.show('New session created', 'success');
+  } catch (error) {
+    console.error('Session regenerate error', error);
+    document.getElementById('sessionCode').textContent = 'Failed';
+    Toast.show('Could not create new session', 'error', 5000);
+  }
 }
 
 function checkNut() {
