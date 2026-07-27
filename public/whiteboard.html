@@ -182,13 +182,15 @@ html,body{
 .wb-tool-toast.show{opacity:1}
 .wb-stylus-hint{
   position:absolute;top:10px;left:50%;transform:translateX(-50%);
-  z-index:55;pointer-events:none;
+  z-index:55;
   padding:5px 12px;border-radius:999px;
   background:rgba(17,24,39,.82);color:#fff;
   font-size:11px;font-weight:700;letter-spacing:.01em;
   box-shadow:0 8px 24px rgba(0,0,0,.16);
   animation:fadeIn .25s ease both;
+  display:flex;align-items:center;gap:7px;
 }
+.wb-stylus-hint button{border:0;background:transparent;color:#fff;font-size:16px;line-height:1;font-weight:900;padding:0;cursor:pointer}
 
 /* ── Cursor indicator for touch ──────────────────────────── */
 .wb-touch-cursor{
@@ -245,7 +247,7 @@ html,body{
   <!-- Canvas -->
   <div class="wb-canvas-wrap" id="wbCanvasWrap">
     <canvas id="wbCanvas"></canvas>
-    <div class="wb-stylus-hint">Use a smart pen or stylus for a better drawing experience.</div>
+    <div class="wb-stylus-hint" id="wbStylusHint">Use a smart pen or stylus for a better drawing experience.<button type="button" aria-label="Dismiss stylus tip">×</button></div>
     <!-- Tool toast sits above canvas but pointer-events:none so it doesn't block drawing -->
     <div class="wb-tool-toast" id="wbToolToast" style="pointer-events:none"></div>
 
@@ -296,6 +298,7 @@ if (sessionId) {
 buildPhoneNav('whiteboard');
 
 function exitWhiteboard() {
+  socket.emit('mode-change', { mode: 'home' });
   window.location.href = `controller.html?session=${sessionId || ''}`;
 }
 
@@ -376,11 +379,7 @@ document.querySelectorAll('[data-wb-tool]').forEach(btn => {
 document.getElementById('wbMenuBtn')?.addEventListener('click', () => {
   document.getElementById('wbTopbar')?.classList.toggle('is-hidden');
 });
-document.getElementById('wbTopbar')?.addEventListener('click', e => {
-  if (e.target.closest('button')) {
-    setTimeout(() => document.getElementById('wbTopbar')?.classList.add('is-hidden'), 120);
-  }
-});
+document.querySelector('#wbStylusHint button')?.addEventListener('click', () => document.getElementById('wbStylusHint')?.remove());
 
 /* ── Touch cursor removed: overlay divs can steal pointer events on some mobile browsers ── */
 

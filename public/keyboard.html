@@ -9,9 +9,6 @@
   .view-switch{display:flex;gap:.3rem;padding:.25rem;background:var(--bg-glass);border-radius:var(--radius-sm);border:1px solid var(--border-glass)}
   .view-switch button{flex:1;padding:.45rem;border-radius:var(--radius-xs);font-size:.8rem;font-weight:600;color:var(--text-secondary);background:transparent;transition:all .2s}
   .view-switch button.active{background:var(--accent);color:#fff}
-  .os-switch{display:flex;gap:.3rem;padding:.25rem;background:var(--bg-glass);border-radius:var(--radius-sm);border:1px solid var(--border-glass);margin-bottom:.4rem}
-  .os-switch button{flex:1;padding:.38rem;border-radius:var(--radius-xs);font-size:.76rem;font-weight:700;color:var(--text-secondary)}
-  .os-switch button.active{background:var(--accent);color:#061017}
   /* Keyboard */
   .kb-container{display:flex;flex-direction:column;gap:.32rem}
   .kb-row{display:flex;gap:.22rem;justify-content:center;width:100%}
@@ -38,6 +35,10 @@
   .mouse-btns{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
   .mouse-btn{min-height:46px;font-size:0;font-weight:600}
   .mouse-btn::after{content:'';width:8px;height:8px;border-radius:50%;background:currentColor;opacity:.65}
+  @media (orientation:landscape){
+    .mod-row{width:100%;gap:.18rem}
+    .mod-row .mod-key{flex:1 1 0;min-width:0;padding-inline:.12rem;font-size:.68rem}
+  }
 </style>
 </head>
 <body>
@@ -61,11 +62,6 @@
 
     <!-- KEYBOARD VIEW -->
     <div id="viewKeyboard">
-      <!-- OS + Layout toggle -->
-      <div class="os-switch">
-        <button class="active" id="osWin" onclick="setKeyboardOS('windows')">Windows</button>
-        <button id="osMac" onclick="setKeyboardOS('mac')">MacBook</button>
-      </div>
       <div class="view-switch" style="margin-bottom:.4rem">
         <button class="active" id="lAlpha" onclick="showLayout('alpha')">ABC</button>
         <button id="lNum" onclick="showLayout('num')">123 #+=</button>
@@ -185,7 +181,8 @@ const numRows = [
   ['!','@','#','$','%','^','&','*','(',')'],
   ['-','_','=','+','[',']','{','}','|','\\'],
   [':',';','"','\'','<','>',',','.','/','?'],
-  ['~','`']
+  ['~','`'],
+  ['.',',','?','/','\\',"'",'"',':',';','|']
 ];
 
 function buildAlpha() {
@@ -329,6 +326,7 @@ function setKeyboardOS(os) {
   buildModifiers();
   haptic('light');
 }
+document.addEventListener('shared-keyboard-os-change', event => setKeyboardOS(event.detail.os));
 
 buildAlpha();
 buildNum();

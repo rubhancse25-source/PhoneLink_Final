@@ -15,6 +15,10 @@
   .timer-display{text-align:center;padding:1.2rem;border-radius:var(--radius)}
   .timer-display .time{font-size:2.8rem;font-weight:800;font-family:'JetBrains Mono',monospace;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
   .timer-display .label{font-size:.7rem;color:var(--text-muted);margin-top:.2rem}
+  /* Stable cells keep both timer actions aligned when Start changes to Pause. */
+  .timer-actions{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.5rem;margin-top:.6rem}
+  .timer-actions > span{display:flex;min-width:0}
+  .timer-actions .btn{width:100%;justify-content:center;white-space:nowrap}
   .laser-zone{width:100%;aspect-ratio:4/3;max-height:52vh;border-radius:var(--radius);background:var(--bg-glass);border:1px solid var(--border-glass);touch-action:none;position:relative;overflow:hidden}
   .laser-zone::after{content:'Drag to move • two fingers swipe to scroll';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--text-muted);font-size:.76rem;pointer-events:none;text-align:center;max-width:72%}
   .mouse-btns{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
@@ -49,9 +53,9 @@
       <div class="glass timer-display">
         <div class="time" id="timerText">00:00</div>
         <div class="label">Elapsed Time</div>
-        <div class="flex justify-center gap-sm" style="margin-top:.6rem">
-          <button class="btn btn-sm" id="timerToggle" onclick="toggleTimer()">Start</button>
-          <button class="btn btn-sm" onclick="resetTimer()">↻ Reset</button>
+        <div class="timer-actions">
+          <span><button class="btn btn-sm" id="timerToggle" onclick="toggleTimer()">Start</button></span>
+          <span><button class="btn btn-sm" onclick="resetTimer()">↻ Reset</button></span>
         </div>
       </div>
 

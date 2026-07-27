@@ -15,6 +15,7 @@ const PhoneBridge = {
   rtcReady: false,
   heartbeatInterval: null,
   rtt: 0,
+  socketFallbackUntil: 0,
 
   /** Extract session ID from URL params */
   getSessionFromURL() {
@@ -50,6 +51,7 @@ const PhoneBridge = {
 
   /** Heartbeat for session keep-alive & RTT measurement */
   startHeartbeat() {
+    clearInterval(this.heartbeatInterval);
     let sentAt = 0;
     this.heartbeatInterval = setInterval(() => {
       sentAt = Date.now();
@@ -147,6 +149,9 @@ const PhoneBridge = {
 
   /** Send data via WebRTC DataChannel (fallback to socket) */
   sendRTC(data) {
+    // Mobile browsers can suspend a data channel while the user saves an image.
+    // Use Socket.IO briefly on return; it reconnects reliably and preserves input.
+    if (Date.now() < this.socketFallbackUntil) return false;
     if (this.rtcReady && this.dataChannel && this.dataChannel.readyState === 'open') {
       if (typeof data === 'string') {
         this.dataChannel.send(data);
@@ -164,6 +169,16 @@ const PhoneBridge = {
     if (!this.sendRTC(JSON.stringify({ type: 'key', ...payload }))) {
       socket.emit('key-input', payload);
     }
+  },
+
+  sendKeyDown(key, modifiers = []) {
+    const payload = { key, modifiers, ts: Date.now() };
+    if (!this.sendRTC(JSON.stringify({ type: 'key-down', ...payload }))) socket.emit('key-down', payload);
+  },
+
+  sendKeyUp(key, modifiers = []) {
+    const payload = { key, modifiers, ts: Date.now() };
+    if (!this.sendRTC(JSON.stringify({ type: 'key-up', ...payload }))) socket.emit('key-up', payload);
   },
 
   /** Send text input */
@@ -312,7 +327,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Initialize theme
   ThemeManager.init();
   Toast.init();
-  buildGlobalSettings();
+  // The dashboard owns its compact laptop-only settings panel. Phone pages use
+  // the shared settings overlay (including haptics and pointer speed).
+  if (!document.getElementById('dashboardSettings')) buildGlobalSettings();
   addFullscreenControl();
 });
 
@@ -342,22 +359,51 @@ function setControlSpeed(kind, value) {
   document.dispatchEvent(new CustomEvent('control-speed-change', { detail: { kind, value: parseFloat(value) } }));
 }
 
-function requestAppFullscreen(target = document.documentElement) {
+function setSharedKeyboardOS(os, broadcast = true) {
+  const value = os === 'mac' ? 'mac' : 'windows';
+  localStorage.setItem('phonelink-keyboard-os', value);
+  document.querySelectorAll('[data-keyboard-os]').forEach(el => el.classList.toggle('active', el.dataset.keyboardOs === value));
+  document.dispatchEvent(new CustomEvent('shared-keyboard-os-change', { detail: { os: value } }));
+  if (broadcast && PhoneBridge.sessionId) socket.emit('keyboard-os-change', { os: value });
+}
+
+function setPseudoFullscreen(enabled) {
+  document.documentElement.classList.toggle('app-fullscreen', enabled);
+  document.body.classList.toggle('app-fullscreen', enabled);
+  document.querySelectorAll('[data-fullscreen-btn]').forEach(btn => { btn.textContent = enabled ? '×' : '⛶'; btn.title = enabled ? 'Exit fullscreen' : 'Fullscreen'; });
+  if (enabled) Toast.show('App fullscreen enabled', 'success');
+}
+
+async function requestAppFullscreen(target = document.documentElement) {
   haptic('light');
   const el = target || document.documentElement;
   const active = document.fullscreenElement || document.webkitFullscreenElement;
   const request = el.requestFullscreen || el.webkitRequestFullscreen;
   const exit = document.exitFullscreen || document.webkitExitFullscreen;
-  if (!active && request) {
-    const result = request.call(el);
-    if (result?.catch) result.catch(() => {});
-  } else if (active && active !== el && exit) {
-    const result = exit.call(document);
-    if (result?.finally) result.finally(() => setTimeout(() => request?.call(el), 80));
-    else setTimeout(() => request?.call(el), 80);
-  } else if (active === el && exit) {
-    const result = exit.call(document);
-    if (result?.catch) result.catch(() => {});
+  if (document.documentElement.classList.contains('app-fullscreen')) { setPseudoFullscreen(false); return; }
+  if (!request) { setPseudoFullscreen(true); return; }
+  try {
+    // A detached whiteboard element can remain reported briefly after download.
+    // Clear that stale state before requesting fullscreen on the current page.
+    if (active && active !== el && exit) {
+      await Promise.resolve(exit.call(document)).catch(() => {});
+    } else if (active === el && exit) {
+      await Promise.resolve(exit.call(document));
+      return;
+    }
+    // navigationUI is supported by Chromium browsers (including Brave Android)
+    // and requests that the browser chrome is hidden as well.
+    try { await Promise.resolve(request.call(el, { navigationUI: 'hide' })); }
+    catch (_) { await Promise.resolve(request.call(el)); }
+    setTimeout(() => {
+      if (document.fullscreenElement || document.webkitFullscreenElement) {
+        Toast.show('Fullscreen enabled', 'success');
+      } else {
+        setPseudoFullscreen(true);
+      }
+    }, 180);
+  } catch (_) {
+    setPseudoFullscreen(true);
   }
 }
 
@@ -374,6 +420,11 @@ function addFullscreenControl() {
     actions.insertBefore(btn, actions.firstChild);
   });
 }
+
+document.addEventListener('fullscreenchange', () => {
+  const active = !!(document.fullscreenElement || document.webkitFullscreenElement);
+  if (!active) document.querySelectorAll('[data-fullscreen-btn]').forEach(btn => { btn.textContent = '⛶'; btn.title = 'Fullscreen'; });
+});
 
 function buildGlobalSettings() {
   if (document.getElementById('globalSettingsOverlay')) return;
@@ -409,6 +460,13 @@ function buildGlobalSettings() {
           <input type="range" class="slider" min="1" max="10" step="0.5" value="${getControlSpeed('presentation')}" data-speed-control="presentation" oninput="setControlSpeed('presentation', this.value)">
         </label>
       </div>
+      <div class="settings-section">
+        <div class="label">Keyboard Layout</div>
+        <div class="theme-grid">
+          <button class="theme-chip" type="button" data-keyboard-os="windows" onclick="setSharedKeyboardOS('windows')">Windows</button>
+          <button class="theme-chip" type="button" data-keyboard-os="mac" onclick="setSharedKeyboardOS('mac')">MacBook</button>
+        </div>
+      </div>
       <div class="settings-section settings-actions">
         <button class="btn btn-primary" type="button" onclick="requestAppFullscreen()">⛶ Fullscreen</button>
         <button class="btn" type="button" onclick="closeGlobalSettings(); Guide.open()">Guide</button>
@@ -418,6 +476,7 @@ function buildGlobalSettings() {
   overlay.addEventListener('click', e => { if (e.target === overlay) closeGlobalSettings(); });
   document.body.appendChild(overlay);
   ThemeManager.apply(ThemeManager.current, false);
+  setSharedKeyboardOS(localStorage.getItem('phonelink-keyboard-os') || 'windows', false);
 
   document.querySelectorAll('.phone-header .flex.items-center').forEach(actions => {
     if (actions.querySelector('[data-settings-btn]')) return;
@@ -464,14 +523,26 @@ function formatTime(seconds) {
 
 /* ── Socket status listeners ───────────────────────────────── */
 socket.on('connect', () => {
+  // Socket.IO gives a reconnecting browser a new socket id. Re-associate it with
+  // the existing session so controls continue working after download/share flows.
+  if (PhoneBridge.sessionId && PhoneBridge.role) {
+    socket.emit(PhoneBridge.role === 'laptop' ? 'laptop-join' : 'phone-join', PhoneBridge.sessionId);
+  }
   document.dispatchEvent(new CustomEvent('socket-connected'));
 });
 socket.on('disconnect', () => {
   document.dispatchEvent(new CustomEvent('socket-disconnected'));
 });
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    PhoneBridge.socketFallbackUntil = Date.now() + 15000;
+    socket.connect();
+  }
+});
 socket.on('error-msg', (msg) => {
   Toast.show(msg, 'error');
 });
+socket.on('keyboard-os-change', data => setSharedKeyboardOS(data?.os, false));
 socket.on('session-expired', () => {
   Toast.show('Session expired', 'error', 5000);
 });

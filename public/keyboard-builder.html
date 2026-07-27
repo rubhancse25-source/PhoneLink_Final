@@ -294,13 +294,15 @@ function selectKey(id) {
 /* ── Test Mode ──────────────────────────────────────────── */
 let repeatInterval = null;
 function testKeyDown(k) {
-  haptic('medium');
-  fireKey(k);
+  if (k.vibrate !== false) haptic('medium');
+  if (k.hold && k.action === 'key') PhoneBridge.sendKeyDown(k.value, k.mods || []);
+  else fireKey(k);
   if (k.repeat) {
     repeatInterval = setInterval(() => fireKey(k), 100);
   }
 }
 function testKeyUp(k) {
+  if (k?.hold && k.action === 'key') PhoneBridge.sendKeyUp(k.value, k.mods || []);
   if (repeatInterval) { clearInterval(repeatInterval); repeatInterval = null; }
 }
 function fireKey(k) {
@@ -428,7 +430,7 @@ function redoLayout() { if(!layoutRedoStack.length) return; layoutHistory.push(J
 
 /* ── Import / Export / Save ─────────────────────────────── */
 function exportJSON() {
-  const blob = new Blob([JSON.stringify(keys, null, 2)], { type: 'application/json' });
+  const blob = new Blob([JSON.stringify({ version: 2, keys }, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
   a.download = 'custom-keyboard.json';
   a.href = URL.createObjectURL(blob);
@@ -443,7 +445,16 @@ function importJSON(e) {
   reader.onload = ev => {
     try {
       saveHistory();
-      keys = JSON.parse(ev.target.result);
+      const raw = JSON.parse(ev.target.result);
+      const list = Array.isArray(raw) ? raw : raw?.keys;
+      if (!Array.isArray(list)) throw new Error('Expected a keyboard key list');
+      keys = list.map((key, index) => ({ ...key,
+        id: key.id ?? index + 1,
+        x: Number.isFinite(+key.x) ? (+key.x <= 1 ? +key.x * 100 : +key.x) : 5 + (index % 4) * 23,
+        y: Number.isFinite(+key.y) ? (+key.y <= 1 ? +key.y * 100 : +key.y) : 5 + Math.floor(index / 4) * 23,
+        w: +key.w || +key.width || 60, h: +key.h || +key.height || 60,
+        vibrate: key.vibrate !== false
+      }));
       nextId = Math.max(...keys.map(k=>k.id||0), 0) + 1;
       render();
       Toast.show('Imported!', 'success');

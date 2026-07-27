@@ -95,7 +95,7 @@ Phone (Browser)  ──WebRTC DataChannel──▶  Laptop (Browser)
        │                                        │
        └──Socket.io──▶  Server  ◀──Socket.io──┘
                           │
-                     nut-js (optional)
+                        nut-js
                           │
                       OS Input
 ```

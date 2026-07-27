@@ -43,6 +43,7 @@
       dirty     : true,
       sentPoints: 0,
       pointerId : null,
+      eraserCursor: null,
     };
 
     /* ── Resize (HiDPI) ── */
@@ -200,22 +201,82 @@
       return false;
     }
 
+    function splitPathAroundEraser(el, n, radius) {
+      const points = el.points || [];
+      if (!points.length) return [];
+      const centre = denorm(n.x, n.y);
+      const outside = p => Math.hypot(p.x - centre.x, p.y - centre.y) > radius + (el.size || 3) * .5;
+      const fragments = [];
+      let fragment = [];
+      const append = p => {
+        if (!outside(p)) {
+          if (fragment.length) fragments.push(fragment);
+          fragment = [];
+          return;
+        }
+        const normal = norm(p.x, p.y);
+        const last = fragment[fragment.length - 1];
+        if (!last || Math.hypot(last.x - normal.x, last.y - normal.y) > .00001) fragment.push(normal);
+      };
+      for (let i = 0; i < points.length; i += 1) {
+        const current = denorm(points[i].x, points[i].y);
+        if (i === 0) { append(current); continue; }
+        const previous = denorm(points[i - 1].x, points[i - 1].y);
+        const steps = Math.max(1, Math.ceil(Math.hypot(current.x - previous.x, current.y - previous.y) / Math.max(2, radius / 3)));
+        for (let step = 1; step <= steps; step += 1) {
+          const t = step / steps;
+          append({ x: previous.x + (current.x - previous.x) * t, y: previous.y + (current.y - previous.y) * t });
+        }
+      }
+      if (fragment.length) fragments.push(fragment);
+      return fragments.map(points => ({ ...el, id: uid(), points }));
+    }
+
+    function splitLineAroundEraser(el, n, radius) {
+      const a = denorm(el.x1, el.y1), b = denorm(el.x2, el.y2), centre = denorm(n.x, n.y);
+      const outside = p => Math.hypot(p.x - centre.x, p.y - centre.y) > radius + (el.size || 3) * .5;
+      const steps = Math.max(2, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / Math.max(2, radius / 3)));
+      const chunks = [];
+      let chunk = [];
+      for (let i = 0; i <= steps; i += 1) {
+        const t = i / steps;
+        const p = { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
+        if (outside(p)) chunk.push(p);
+        else if (chunk.length) { chunks.push(chunk); chunk = []; }
+      }
+      if (chunk.length) chunks.push(chunk);
+      return chunks.filter(c => c.length > 1).map(c => {
+        const start = norm(c[0].x, c[0].y), end = norm(c[c.length - 1].x, c[c.length - 1].y);
+        return { ...el, id: uid(), type: 'line', tool: 'line', x1: start.x, y1: start.y, x2: end.x, y2: end.y };
+      });
+    }
+
     function eraseAt(wx, wy) {
       const n = norm(wx, wy);
       const radius = Math.max(10, S.size * 4);
-      const removed = [];
-      S.elements = S.elements.filter(el => {
-        if (elementHitByEraser(el, n, radius)) {
-          removed.push(el.id);
-          return false;
-        }
-        return true;
+      const removed = [], additions = [];
+      S.elements = S.elements.flatMap(el => {
+        if (!elementHitByEraser(el, n, radius)) return [el];
+        // Rather than deleting a whole stroke, retain every portion outside the
+        // brush circle as independent paths. This also syncs deterministically.
+        const pieces = el.type === 'path' ? splitPathAroundEraser(el, n, radius)
+          : (el.type === 'line' || el.type === 'arrow') ? splitLineAroundEraser(el, n, radius) : [el];
+        if (pieces.length === 1 && pieces[0] === el) return [el];
+        removed.push(el.id);
+        additions.push(...pieces);
+        return pieces;
       });
       if (removed.length) {
         S.redo = [];
-        emit('erase', { ids: removed });
+        emit('erase', { removeIds: removed, additions });
         markDirty();
       }
+    }
+
+    function updateEraserCursor(wx, wy) {
+      if (S.tool !== 'eraser') return;
+      S.eraserCursor = { x: wx, y: wy, radius: Math.max(10, S.size * 4) };
+      markDirty();
     }
 
     /* ── Pointer handlers ── */
@@ -241,6 +302,7 @@
       if (S.tool === 'eraser') {
         S.drawing = true;
         S.live = null;
+        updateEraserCursor(x, y);
         eraseAt(x, y);
         return;
       }
@@ -263,6 +325,10 @@
         markDirty();
         return;
       }
+      if (S.tool === 'eraser') {
+        const point = clientToWorld(e.clientX, e.clientY);
+        updateEraserCursor(point.x, point.y);
+      }
       if (!S.drawing) return;
 
       // Use coalesced events for dense touch paths
@@ -270,6 +336,7 @@
       for (const ev of events) {
         const { x, y } = clientToWorld(ev.clientX, ev.clientY);
         if (S.tool === 'eraser') {
+          updateEraserCursor(x, y);
           eraseAt(x, y);
           continue;
         }
@@ -304,6 +371,7 @@
       if (S.tool === 'eraser') {
         S.drawing = false;
         S.live = null;
+        S.eraserCursor = null;
         emit('live', null);
         return;
       }
@@ -576,6 +644,19 @@
       S.elements.forEach(drawElement);
       drawElement(S.remoteLive);
       drawElement(S.live);
+      if (S.eraserCursor && S.tool === 'eraser') {
+        const p = worldToCanvas(S.eraserCursor.x, S.eraserCursor.y);
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, S.eraserCursor.radius * S.zoom, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(239, 68, 68, .12)';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(185, 28, 28, .9)';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([4, 3]);
+        ctx.stroke();
+        ctx.restore();
+      }
       onDraw?.();
     }
 
@@ -608,11 +689,12 @@
         case 'redo':  if (S.redo.length) S.elements.push(S.redo.pop()); break;
         case 'clear': S.elements = []; S.redo = []; S.remoteLive = null; break;
         case 'erase': {
-          const ids = new Set(event.payload?.ids || []);
+          const ids = new Set(event.payload?.removeIds || event.payload?.ids || []);
           if (ids.size) {
             S.elements = S.elements.filter(el => !ids.has(el.id));
             if (S.remoteLive && ids.has(S.remoteLive.id)) S.remoteLive = null;
           }
+          if (event.payload?.additions?.length) S.elements.push(...event.payload.additions);
           break;
         }
         case 'state': if (event.payload?.elements) S.elements = event.payload.elements; break;
@@ -623,6 +705,7 @@
     /* ── Tool API ── */
     function setTool(tool) {
       S.tool = tool;
+      if (tool !== 'eraser') S.eraserCursor = null;
       const cursors = {
         pen: 'crosshair', eraser: 'cell', hand: 'grab',
         text: 'text', rect: 'crosshair', ellipse: 'crosshair',
@@ -635,7 +718,7 @@
     }
 
     function setColor(c)   { S.color   = c; }
-    function setSize(n)    { S.size    = Number(n) || 3; }
+    function setSize(n)    { S.size = Number(n) || 3; markDirty(); }
     function setFill(f)    { S.fill    = f; }
     function setOpacity(o) { S.opacity = clamp(Number(o), 0, 1); }
 
