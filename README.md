@@ -6,7 +6,7 @@ Control your laptop from your phone via QR code pairing with low-latency WebSock
 
 ---
 
-## ✨ Features
+## Features
 
 ### 5 Control Modes
 
