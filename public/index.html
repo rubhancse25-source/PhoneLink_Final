@@ -98,10 +98,10 @@
     <div class="swirl-sticky">
       <div style="position:absolute;width:600px;height:600px;background:radial-gradient(circle,rgba(255,255,255,.08) 0%,transparent 60%);pointer-events:none;z-index:-1;transform:translateZ(-500px)"></div>
       <div class="swirl-card" id="swirl-0"><div class="s-icon">▭</div><h3>Presentation</h3><p>Control lesson slides seamlessly with next/prev and laser pointer.</p></div>
-      <div class="swirl-card" id="swirl-1"><div class="s-icon">⌗</div><h3>Keyboard & Mouse</h3><p>Remote typing and smooth cursor control for quick laptop navigation.</p></div>
-      <div class="swirl-card" id="swirl-2"><div class="s-icon">◇</div><h3>Custom Keys</h3><p>Create specific macro buttons to automate your most-used classroom apps.</p></div>
-      <div class="swirl-card" id="swirl-3"><div class="s-icon">♪</div><h3>Media</h3><p>Control educational videos and audio playback from anywhere in the room.</p></div>
-      <div class="swirl-card" id="swirl-4"><div class="s-icon">□</div><h3>Whiteboard</h3><p>Instantly sketch and brainstorm with students on a shared zero-lag canvas.</p></div>
+      <div class="swirl-card" id="swirl-1"><div class="s-icon">□</div><h3>Whiteboard</h3><p>Instantly sketch and brainstorm with students on a shared zero-lag canvas.</p></div>
+      <div class="swirl-card" id="swirl-2"><div class="s-icon">♪</div><h3>Media</h3><p>Control educational videos and audio playback from anywhere in the room.</p></div>
+      <div class="swirl-card" id="swirl-3"><div class="s-icon">⌗</div><h3>Keyboard & Mouse</h3><p>Remote typing and smooth cursor control for quick laptop navigation.</p></div>
+      <div class="swirl-card" id="swirl-4"><div class="s-icon">◇</div><h3>Custom Keys</h3><p>Create specific macro buttons to automate your most-used classroom apps.</p></div>
     </div>
   </div>
 
@@ -252,11 +252,21 @@
       <div class="theme-grid" id="dashboardThemeGrid"></div>
     </div>
     <div class="settings-section">
-      <div class="label">Keyboard Layout</div>
-      <div class="theme-grid">
-        <button class="theme-chip" type="button" data-keyboard-os="windows" onclick="setSharedKeyboardOS('windows')">Windows</button>
-        <button class="theme-chip" type="button" data-keyboard-os="mac" onclick="setSharedKeyboardOS('mac')">MacBook</button>
-      </div>
+      <label class="setting-row">
+        <span><strong>Vibration</strong><small>Applied on mobile button taps.</small></span>
+        <input type="checkbox" data-vibration-toggle checked onchange="setVibrationEnabled(this.checked)">
+      </label>
+    </div>
+    <div class="settings-section">
+      <div class="label">Pointer Speed</div>
+      <label class="speed-setting">
+        <span>Keyboard mousepad</span>
+        <input type="range" class="slider" min="1" max="10" step="0.5" data-speed-control="keyboard" oninput="setControlSpeed('keyboard', this.value)">
+      </label>
+      <label class="speed-setting">
+        <span>Presentation mousepad</span>
+        <input type="range" class="slider" min="1" max="10" step="0.5" data-speed-control="presentation" oninput="setControlSpeed('presentation', this.value)">
+      </label>
     </div>
     <div class="settings-section">
       <div class="stat-row">
@@ -460,8 +470,6 @@ document.addEventListener('datachannel-message', e => {
     try {
       const d = JSON.parse(raw);
       if(d.type==='key') { logInput('RTC-KEY', d.key); socket.emit('key-input',d); }
-      else if(d.type==='key-down') { logInput('RTC-KEY DOWN', d.key); socket.emit('key-down',d); }
-      else if(d.type==='key-up') { logInput('RTC-KEY UP', d.key); socket.emit('key-up',d); }
       else if(d.type==='click') { logInput('RTC-CLICK', d.button); socket.emit('mouse-click',d); }
       else if(d.type==='scroll') { logInput('RTC-SCROLL', `${d.dx},${d.dy}`); socket.emit('mouse-scroll',d); }
       else if(d.type==='text') { logInput('RTC-TEXT', d.text); socket.emit('text-input',d); }
@@ -520,7 +528,6 @@ function openDashboardSettings(){
   }
   document.getElementById('dashboardSettings').classList.add('active');
   ThemeManager.apply(ThemeManager.current, false);
-  setSharedKeyboardOS(localStorage.getItem('phonelink-keyboard-os') || 'windows', false);
   document.querySelectorAll('[data-vibration-toggle]').forEach(el => { el.checked = localStorage.getItem('phonelink-vibrate') !== 'off'; });
   document.querySelectorAll('[data-speed-control="keyboard"]').forEach(el => { el.value = getControlSpeed('keyboard'); });
   document.querySelectorAll('[data-speed-control="presentation"]').forEach(el => { el.value = getControlSpeed('presentation'); });

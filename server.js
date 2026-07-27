@@ -218,30 +218,6 @@ async function injectKey(keyCode, modifiers = []) {
   }
 }
 
-async function injectKeyDown(keyCode, modifiers = []) {
-  if (!nutAvailable) return false;
-  try {
-    const mods = modifiers.map(m => keyMap[m]).filter(m => m && Key[m]).map(m => Key[m]);
-    const key = keyMap[keyCode];
-    if (!key || !Key[key]) return false;
-    if (mods.length) await keyboard.pressKey(...mods);
-    await keyboard.pressKey(Key[key]);
-    return true;
-  } catch (err) { console.error('Key down error:', err.message); return false; }
-}
-
-async function injectKeyUp(keyCode, modifiers = []) {
-  if (!nutAvailable) return false;
-  try {
-    const mods = modifiers.map(m => keyMap[m]).filter(m => m && Key[m]).map(m => Key[m]);
-    const key = keyMap[keyCode];
-    if (!key || !Key[key]) return false;
-    await keyboard.releaseKey(Key[key]);
-    if (mods.length) await keyboard.releaseKey(...mods);
-    return true;
-  } catch (err) { console.error('Key up error:', err.message); return false; }
-}
-
 async function injectMouseMove(dx, dy) {
   if (!nutAvailable) return false;
   try {
@@ -297,7 +273,6 @@ io.on('connection', (socket) => {
       socket.emit('error-msg', 'Session not found');
       return;
     }
-    const replacingExistingSocket = session.laptopSocket === socket;
     session.laptopSocket = socket;
     session.lastHeartbeat = Date.now();
     socket.join(`session-${sessionId}`);
@@ -307,7 +282,7 @@ io.on('connection', (socket) => {
     console.log(`[laptop] Joined session: ${sessionId}`);
 
     // Notify phone if already connected
-    if (session.phoneSocket && !replacingExistingSocket) {
+    if (session.phoneSocket) {
       session.phoneSocket.emit('peer-connected', { role: 'laptop' });
       socket.emit('peer-connected', { role: 'phone' });
     }
@@ -320,7 +295,6 @@ io.on('connection', (socket) => {
       socket.emit('error-msg', 'Invalid session ID');
       return;
     }
-    const replacingExistingSocket = session.phoneSocket === socket;
     session.phoneSocket = socket;
     session.lastHeartbeat = Date.now();
     socket.join(`session-${sessionId}`);
@@ -330,7 +304,7 @@ io.on('connection', (socket) => {
     console.log(`[phone] Joined session: ${sessionId}`);
 
     // Notify laptop
-    if (session.laptopSocket && !replacingExistingSocket) {
+    if (session.laptopSocket) {
       session.laptopSocket.emit('peer-connected', { role: 'phone' });
       socket.emit('peer-connected', { role: 'laptop' });
     }
@@ -377,13 +351,6 @@ io.on('connection', (socket) => {
     if (session) session.rtcConnected = true;
   });
 
-  socket.on('keyboard-os-change', (data) => {
-    const session = sessions.get(socket.sessionId);
-    if (!session) return;
-    session.keyboardOS = data?.os === 'mac' ? 'mac' : 'windows';
-    io.to(`session-${socket.sessionId}`).emit('keyboard-os-change', { os: session.keyboardOS });
-  });
-
   // ── Input events ──
   socket.on('key-input', async (data) => {
     const session = sessions.get(socket.sessionId);
@@ -396,18 +363,6 @@ io.on('connection', (socket) => {
 
     // Inject via nut-js
     await injectKey(data.key, data.modifiers || []);
-  });
-
-  socket.on('key-down', async (data) => {
-    const session = sessions.get(socket.sessionId);
-    if (session?.laptopSocket) session.laptopSocket.emit('key-down', data);
-    await injectKeyDown(data.key, data.modifiers || []);
-  });
-
-  socket.on('key-up', async (data) => {
-    const session = sessions.get(socket.sessionId);
-    if (session?.laptopSocket) session.laptopSocket.emit('key-up', data);
-    await injectKeyUp(data.key, data.modifiers || []);
   });
 
   socket.on('text-input', async (data) => {
@@ -517,10 +472,10 @@ io.on('connection', (socket) => {
     if (socket.sessionId) {
       const session = sessions.get(socket.sessionId);
       if (session) {
-        if (socket.role === 'laptop' && session.laptopSocket === socket) {
+        if (socket.role === 'laptop') {
           session.laptopSocket = null;
           if (session.phoneSocket) session.phoneSocket.emit('peer-disconnected', { role: 'laptop' });
-        } else if (socket.role === 'phone' && session.phoneSocket === socket) {
+        } else if (socket.role === 'phone') {
           session.phoneSocket = null;
           if (session.laptopSocket) session.laptopSocket.emit('peer-disconnected', { role: 'phone' });
         }
